@@ -1418,112 +1418,123 @@ async def fetch_candles_for_asset(client: Quotex, asset: str, days: int,
 
 
 # ==============================================================================
-# SECTION 13: INTERACTIVE MAIN (جديد)
+# SECTION 13: INTERACTIVE MAIN
 # ==============================================================================
+
+# IMPORTANT: input() blocks the event loop. If we use it directly, keepalive_loop
+# (which is an async task in the same loop) cannot send pings while the user is
+# typing. The connection then dies after ~30s of silence and the next fetch
+# sees "Connection dead". To avoid this, all input() calls go through this
+# async wrapper that runs them in a worker thread, freeing the event loop.
+async def ainput(prompt: str = "") -> str:
+    """Async wrapper around input() that does NOT block the event loop."""
+    return await asyncio.to_thread(input, prompt)
+
+
 def print_banner():
-    print(f"{Colors.CYAN}{Colors.BOLD}{'═'*60}{Colors.RESET}")
-    print(f"{Colors.BOLD}  CANDAL — Quotex Candle Fetcher{Colors.RESET}")
-    print(f"{Colors.BOLD}  نسخة مبسّطة لجلب الشموع وحفظها كـ JSON{Colors.RESET}")
-    print(f"{Colors.CYAN}{'═'*60}{Colors.RESET}")
-    print(f"{Colors.YELLOW}  مجلد الحفظ: {CANDLES_DIR.absolute()}{Colors.RESET}")
-    print(f"{Colors.YELLOW}  السرعة:    {FETCH_MAX_WORKERS} workers بالتوازي{Colors.RESET}")
-    print(f"{Colors.YELLOW}  الفريمات:  1, 5, 15, 30, 60 (دقائق){Colors.RESET}")
-    print(f"{Colors.CYAN}{'═'*60}{Colors.RESET}\n")
+    print(f"{Colors.CYAN}{Colors.BOLD}{'='*60}{Colors.RESET}")
+    print(f"{Colors.BOLD}  CANDAL - Quotex Candle Fetcher{Colors.RESET}")
+    print(f"{Colors.BOLD}  Simplified version: fetch candles and save as JSON{Colors.RESET}")
+    print(f"{Colors.CYAN}{'='*60}{Colors.RESET}")
+    print(f"{Colors.YELLOW}  Save folder: {CANDLES_DIR.absolute()}{Colors.RESET}")
+    print(f"{Colors.YELLOW}  Speed:       {FETCH_MAX_WORKERS} parallel workers{Colors.RESET}")
+    print(f"{Colors.YELLOW}  Timeframes:  1, 5, 15, 30, 60 (minutes){Colors.RESET}")
+    print(f"{Colors.CYAN}{'='*60}{Colors.RESET}\n")
 
 
-def prompt_asset() -> Optional[str]:
-    """يطلب من المستخدم اسم العملة. يُعيد None للخروج."""
+async def prompt_asset() -> Optional[str]:
+    """Asks the user for the asset name. Returns None to exit."""
     while True:
         try:
-            raw = input(f"{Colors.YELLOW}اسم العملة (أو 'exit' للخروج): {Colors.RESET}").strip()
+            raw = (await ainput(f"{Colors.YELLOW}Asset name (or 'exit' to quit): {Colors.RESET}")).strip()
         except (EOFError, KeyboardInterrupt):
             return None
         if not raw:
             continue
-        if raw.lower() in ('exit', 'quit', 'q', 'خروج'):
+        if raw.lower() in ('exit', 'quit', 'q'):
             return None
         normalized = normalize_asset(raw)
         if not normalized:
-            print(f"{Colors.RED}اسم غير صالح.{Colors.RESET}")
+            print(f"{Colors.RED}Invalid name.{Colors.RESET}")
             continue
         return normalized
 
 
-def prompt_days() -> Optional[int]:
-    """يطلب عدد الأيام. يُعيد None للخروج، أو رقم موجب."""
+async def prompt_days() -> Optional[int]:
+    """Asks for the number of days. Returns None to exit, or a positive int."""
     while True:
         try:
-            raw = input(f"{Colors.YELLOW}عدد الأيام (مثلاً 7، 30، 100): {Colors.RESET}").strip()
+            raw = (await ainput(f"{Colors.YELLOW}Number of days (e.g. 7, 30, 100): {Colors.RESET}")).strip()
         except (EOFError, KeyboardInterrupt):
             return None
         if not raw:
             continue
-        if raw.lower() in ('exit', 'quit', 'q', 'خروج'):
+        if raw.lower() in ('exit', 'quit', 'q'):
             return None
         try:
             days = int(float(raw))
             if days <= 0:
-                print(f"{Colors.RED}يجب أن يكون عدد الأيام موجباً.{Colors.RESET}")
+                print(f"{Colors.RED}Days must be a positive number.{Colors.RESET}")
                 continue
             return days
         except ValueError:
-            print(f"{Colors.RED}أدخل رقماً صحيحاً.{Colors.RESET}")
+            print(f"{Colors.RED}Please enter a valid integer.{Colors.RESET}")
 
 
-def prompt_timeframe() -> Optional[int]:
-    """يطلب الفريم بالدقائق. يُعيد None للخروج، أو رقم من [1, 5, 15, 30, 60]."""
+async def prompt_timeframe() -> Optional[int]:
+    """Asks for the timeframe in minutes. Returns None to exit, or a number."""
     while True:
         try:
-            raw = input(f"{Colors.YELLOW}الفريم بالدقائق (1, 5, 15, 30, 60): {Colors.RESET}").strip()
+            raw = (await ainput(f"{Colors.YELLOW}Timeframe in minutes (1, 5, 15, 30, 60): {Colors.RESET}")).strip()
         except (EOFError, KeyboardInterrupt):
             return None
         if not raw:
             continue
-        if raw.lower() in ('exit', 'quit', 'q', 'خروج'):
+        if raw.lower() in ('exit', 'quit', 'q'):
             return None
         try:
             tf = int(raw)
             if tf <= 0:
-                print(f"{Colors.RED}يجب أن يكون الفريم موجباً.{Colors.RESET}")
+                print(f"{Colors.RED}Timeframe must be positive.{Colors.RESET}")
                 continue
             if tf not in (1, 5, 15, 30, 60):
-                print(f"{Colors.YELLOW}تحذير: الفريم {tf} غير شائع — سيتم المتابعة.{Colors.RESET}")
+                print(f"{Colors.YELLOW}Warning: timeframe {tf} is unusual - continuing anyway.{Colors.RESET}")
             return tf
         except ValueError:
-            print(f"{Colors.RED}أدخل رقماً صحيحاً.{Colors.RESET}")
+            print(f"{Colors.RED}Please enter a valid integer.{Colors.RESET}")
 
 
 async def main_async():
     print_banner()
 
-    # ===== قراءة بيانات الدخول (مع الحفظ الآلي) =====
+    # ===== Read credentials (auto-saved) =====
     creds = load_credentials()
     saved_proxy = ""
     if creds:
-        print(f"{Colors.GREEN}تم العثور على بيانات دخول محفوظة لـ: {creds['email']}{Colors.RESET}")
+        print(f"{Colors.GREEN}Found saved credentials for: {creds['email']}{Colors.RESET}")
         saved_proxy = creds.get("proxy", "") or ""
         if saved_proxy:
-            print(f"{Colors.GREEN}البروكسي المحفوظ: {saved_proxy}{Colors.RESET}")
-        use_saved = input(f"{Colors.YELLOW}استخدامها؟ (Y/n): {Colors.RESET}").strip().lower()
-        if use_saved in ('y', '', 'yes', 'نعم'):
+            print(f"{Colors.GREEN}Saved proxy: {saved_proxy}{Colors.RESET}")
+        use_saved = (await ainput(f"{Colors.YELLOW}Use saved credentials? (Y/n): {Colors.RESET}")).strip().lower()
+        if use_saved in ('y', '', 'yes'):
             email, password = creds['email'], creds['password']
         else:
-            email = input(f"{Colors.YELLOW}Email: {Colors.RESET}").strip()
-            password = input(f"{Colors.YELLOW}Password: {Colors.RESET}").strip()
+            email = (await ainput(f"{Colors.YELLOW}Email: {Colors.RESET}")).strip()
+            password = (await ainput(f"{Colors.YELLOW}Password: {Colors.RESET}")).strip()
     else:
-        print(f"{Colors.CYAN}أدخل بيانات الدخول لـ Quotex (ستُحفظ تلقائياً){Colors.RESET}")
-        email = input(f"{Colors.YELLOW}Email: {Colors.RESET}").strip()
-        password = input(f"{Colors.YELLOW}Password: {Colors.RESET}").strip()
+        print(f"{Colors.CYAN}Enter your Quotex credentials (will be saved automatically){Colors.RESET}")
+        email = (await ainput(f"{Colors.YELLOW}Email: {Colors.RESET}")).strip()
+        password = (await ainput(f"{Colors.YELLOW}Password: {Colors.RESET}")).strip()
 
     if not email or not password:
-        print(f"{Colors.RED}بيانات الدخول غير صالحة.{Colors.RESET}")
+        print(f"{Colors.RED}Invalid credentials.{Colors.RESET}")
         return
 
-    # ===== سؤال البروكسي (اختياري) =====
+    # ===== Ask for proxy (optional) =====
     proxy = ""
-    proxy_input = input(
-        f"{Colors.YELLOW}البروكسي (مثل http://1.2.3.4:8080 أو socks5://1.2.3.4:1080) — اتركه فارغاً إن لم يكن: {Colors.RESET}"
-    ).strip()
+    proxy_input = (await ainput(
+        f"{Colors.YELLOW}Proxy (e.g. http://1.2.3.4:8080 or socks5://1.2.3.4:1080) - leave empty if none: {Colors.RESET}"
+    )).strip()
     if proxy_input:
         proxy = proxy_input
     elif saved_proxy:
@@ -1532,50 +1543,50 @@ async def main_async():
     if proxy:
         logmsg(f"Using proxy: {proxy}")
 
-    # ===== الاتصال بـ Quotex =====
+    # ===== Connect to Quotex =====
     logmsg("Connecting to Quotex...")
     client = await connect_quotex(email, password, max_attempts=3, proxies=proxy or None)
     if client is None:
-        print(f"\n{Colors.RED}فشل الاتصال بعد عدة محاولات.{Colors.RESET}")
-        print(f"{Colors.YELLOW}إذا كنت في منطقة محظورة من Quotex، استخدم proxy في دولة مدعومة.{Colors.RESET}")
+        print(f"\n{Colors.RED}Connection failed after multiple attempts.{Colors.RESET}")
+        print(f"{Colors.YELLOW}If you are in a region blocked by Quotex, use a proxy in a supported country.{Colors.RESET}")
         return
 
-    # حفظ بيانات الدخول بعد نجاح الاتصال
+    # Save credentials after successful connection
     save_credentials(email, password, proxy)
-    print(f"{Colors.GREEN}تم حفظ بيانات الدخول في {CREDENTIALS_FILE.name}{Colors.RESET}\n")
+    print(f"{Colors.GREEN}Credentials saved to {CREDENTIALS_FILE.name}{Colors.RESET}\n")
 
-    # ===== تشغيل keepalive في الخلفية =====
+    # ===== Start keepalive in the background =====
     stop_keepalive = asyncio.Event()
     keepalive_task = asyncio.create_task(keepalive_loop(client, stop_keepalive))
 
     try:
         fetch_count = 0
         while True:
-            print(f"\n{Colors.CYAN}{'─'*60}{Colors.RESET}")
-            print(f"{Colors.BOLD}  طلب جلب جديد{Colors.RESET}")
-            print(f"{Colors.CYAN}{'─'*60}{Colors.RESET}")
+            print(f"\n{Colors.CYAN}{'-'*60}{Colors.RESET}")
+            print(f"{Colors.BOLD}  New fetch request{Colors.RESET}")
+            print(f"{Colors.CYAN}{'-'*60}{Colors.RESET}")
 
-            asset = prompt_asset()
+            asset = await prompt_asset()
             if asset is None:
-                print(f"\n{Colors.YELLOW}إغلاق...{Colors.RESET}")
+                print(f"\n{Colors.YELLOW}Shutting down...{Colors.RESET}")
                 break
 
-            days = prompt_days()
+            days = await prompt_days()
             if days is None:
-                print(f"\n{Colors.YELLOW}إغلاق...{Colors.RESET}")
+                print(f"\n{Colors.YELLOW}Shutting down...{Colors.RESET}")
                 break
 
-            timeframe = prompt_timeframe()
+            timeframe = await prompt_timeframe()
             if timeframe is None:
-                print(f"\n{Colors.YELLOW}إغلاق...{Colors.RESET}")
+                print(f"\n{Colors.YELLOW}Shutting down...{Colors.RESET}")
                 break
 
-            # تأكيد الإدخال
-            print(f"\n{Colors.CYAN}الملخص:{Colors.RESET}")
-            print(f"  العملة:   {Colors.BOLD}{pretty_asset(asset, timeframe)}{Colors.RESET}")
-            print(f"  الأيام:   {days}")
-            print(f"  الفريم:   M{timeframe}")
-            print(f"  التقدير:  ~{days * 1440 // timeframe:,} شمعة\n")
+            # Summary
+            print(f"\n{Colors.CYAN}Summary:{Colors.RESET}")
+            print(f"  Asset:     {Colors.BOLD}{pretty_asset(asset, timeframe)}{Colors.RESET}")
+            print(f"  Days:      {days}")
+            print(f"  Timeframe: M{timeframe}")
+            print(f"  Estimated: ~{days * 1440 // timeframe:,} candles\n")
 
             fetch_count += 1
             candles = await fetch_candles_for_asset(
@@ -1584,27 +1595,27 @@ async def main_async():
             )
 
             if not candles:
-                print(f"{Colors.RED}لم يتم جلب أي شموع.{Colors.RESET}")
+                print(f"{Colors.RED}No candles fetched.{Colors.RESET}")
             else:
                 filepath = save_candles_to_json(candles, asset, timeframe, days)
                 if filepath:
-                    print(f"{Colors.GREEN}✓ تم حفظ {len(candles)} شمعة في:{Colors.RESET}")
+                    print(f"{Colors.GREEN}OK Saved {len(candles)} candles to:{Colors.RESET}")
                     print(f"  {Colors.CYAN}{filepath.absolute()}{Colors.RESET}")
                 else:
-                    print(f"{Colors.RED}فشل حفظ الملف.{Colors.RESET}")
+                    print(f"{Colors.RED}Failed to save file.{Colors.RESET}")
 
-            # انتظار Enter للجلب التالي
-            print(f"\n{Colors.YELLOW}اضغط Enter لجلب عملة أخرى، أو اكتب 'exit' للخروج.{Colors.RESET}")
+            # Wait for Enter for next fetch
+            print(f"\n{Colors.YELLOW}Press Enter to fetch another asset, or type 'exit' to quit.{Colors.RESET}")
             try:
-                choice = input().strip().lower()
-                if choice in ('exit', 'quit', 'q', 'خروج'):
-                    print(f"\n{Colors.YELLOW}إغلاق...{Colors.RESET}")
+                choice = (await ainput()).strip().lower()
+                if choice in ('exit', 'quit', 'q'):
+                    print(f"\n{Colors.YELLOW}Shutting down...{Colors.RESET}")
                     break
             except (EOFError, KeyboardInterrupt):
-                print(f"\n{Colors.YELLOW}إغلاق...{Colors.RESET}")
+                print(f"\n{Colors.YELLOW}Shutting down...{Colors.RESET}")
                 break
     finally:
-        # تنظيف الموارد
+        # Cleanup
         stop_keepalive.set()
         try:
             await asyncio.wait_for(keepalive_task, timeout=2.0)
@@ -1614,14 +1625,14 @@ async def main_async():
             await client.close()
         except Exception:
             pass
-        print(f"{Colors.CYAN}تم الإغلاق بنجاح.{Colors.RESET}")
+        print(f"{Colors.CYAN}Shutdown complete.{Colors.RESET}")
 
 
 def main():
     try:
         asyncio.run(main_async())
     except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}تم الإيقاف.{Colors.RESET}")
+        print(f"\n{Colors.YELLOW}Stopped.{Colors.RESET}")
     except Exception as e:
         log_exception("main", e)
 
