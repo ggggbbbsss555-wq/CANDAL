@@ -1365,27 +1365,90 @@ async def connect_quotex(email: str, password: str, max_attempts: int = 3,
 
 async def fetch_candles_for_asset(client: Quotex, asset: str, days: int,
                                    timeframe_min: int, idx: int = 1, total: int = 1) -> List[Dict]:
-    """يجلب شموع الأصل المطلوب. يُعيد قائمة الشموع (قائمة فارغة عند الفشل).
+    """Fetches candles for the requested asset. Returns a list of candles (empty on failure).
 
-    المعاملات:
-      client       : كائن Quotex متصل
-      asset        : اسم الأصل بصيغة Quotex (مثلاً EURUSD_otc)
-      days         : عدد الأيام المطلوب جلبها
-      timeframe_min: طول الشمعة بالدقائق (1, 5, 15, 30, 60)
+    Parameters:
+      client       : connected Quotex client
+      asset        : asset name in Quotex format (e.g. EURUSD_otc)
+      days         : number of days to fetch
+      timeframe_min: candle length in minutes (1, 5, 15, 30, 60)
     """
     amount_of_seconds = int(days * 86400)
     period_seconds = int(timeframe_min * 60)
     display = pretty_asset(asset, timeframe_min)
-    # timeout مرن: 60s كحد أدنى، ويزيد مع عدد الأيام
+    # Flexible timeout: 60s minimum, increases with days
     timeout = max(60, days * 60)
 
-    logmsg(f"[{idx}/{total}] Fetching {display}: {days} days × M{timeframe_min}...")
+    print(f"\n  {Colors.BOLD}{Colors.CYAN}[{idx}/{total}] Fetching {display}{Colors.RESET}")
+    print(f"  Duration: {days} days | Timeframe: M{timeframe_min} | Workers: {FETCH_MAX_WORKERS}")
+    print(f"  {Colors.DIM}Estimated candles: ~{days * 1440 // timeframe_min:,}{Colors.RESET}\n")
 
     for attempt in range(1, MAX_FETCH_RETRIES + 1):
-        # تحقق من الاتصال قبل كل محاولة
+        # Check connection before each attempt
         if client is None or client.api is None or not getattr(client.api.state, 'check_accepted_connection', False):
             logmsg(f"Connection dead before attempt {attempt}; aborting.")
             return []
+
+        # Progress tracker (thread-safe) — shared by all 5 workers
+        progress = {
+            'candles': 0,            # total candles fetched so far
+            'oldest_ts': int(time.time()),  # oldest timestamp fetched
+            'start_ts': int(time.time()),   # latest timestamp (now)
+            'target_ts': int(time.time()) - amount_of_seconds,  # target end timestamp
+            'lock': threading.Lock(),
+            'last_print': 0.0,       # last print time
+            'fetch_start': time.time(),  # when fetch started
+            'worker_candles': [0] * FETCH_MAX_WORKERS,  # candles per worker
+        }
+
+        def progress_callback(seconds_done, total_seconds, candles_count, worker_label):
+            """Called by each worker after every batch. Throttled to once per 0.3s."""
+            now = time.time()
+            with progress['lock']:
+                # Aggregate candles from this worker
+                try:
+                    wid = int(worker_label.split('-')[1]) if '-' in worker_label else 0
+                    if 0 <= wid < FETCH_MAX_WORKERS:
+                        progress['worker_candles'][wid] = candles_count
+                except Exception:
+                    pass
+                progress['candles'] = sum(progress['worker_candles'])
+                # Track oldest timestamp seen across workers
+                current_oldest = progress['start_ts'] - seconds_done
+                if current_oldest < progress['oldest_ts']:
+                    progress['oldest_ts'] = current_oldest
+                # Throttle prints to avoid terminal flicker
+                if now - progress['last_print'] < 0.3:
+                    return
+                progress['last_print'] = now
+
+                elapsed = now - progress['fetch_start']
+                total_span = progress['start_ts'] - progress['target_ts']
+                done_span = progress['start_ts'] - progress['oldest_ts']
+                pct = min(done_span / total_span, 1.0) if total_span > 0 else 0
+                bar_len = 30
+                filled = int(bar_len * pct)
+                bar = '#' * filled + '-' * (bar_len - filled)
+                # Speed: candles per second
+                speed = progress['candles'] / elapsed if elapsed > 0 else 0
+                # ETA: based on pct and elapsed
+                if pct > 0.01:
+                    eta = elapsed * (1.0 - pct) / pct
+                    eta_str = f"{int(eta//60):02d}:{int(eta%60):02d}"
+                else:
+                    eta_str = "  ?  "
+                elapsed_str = f"{int(elapsed//60):02d}:{int(elapsed%60):02d}"
+                sys.stdout.write(
+                    f"\r  {Colors.CYAN}[{bar}]{Colors.RESET} "
+                    f"{pct*100:5.1f}% | "
+                    f"{Colors.GREEN}{progress['candles']:>6,}{Colors.RESET} candles | "
+                    f"{elapsed_str} | "
+                    f"{speed:>5.0f} c/s | "
+                    f"ETA {eta_str}   "
+                )
+                sys.stdout.flush()
+
+        print(f"  {Colors.YELLOW}Attempt {attempt}/{MAX_FETCH_RETRIES} ...{Colors.RESET}")
         try:
             candles = await asyncio.wait_for(
                 client.get_historical_candles(
@@ -1393,18 +1456,28 @@ async def fetch_candles_for_asset(client: Quotex, asset: str, days: int,
                     amount_of_seconds=amount_of_seconds,
                     period=period_seconds,
                     max_workers=FETCH_MAX_WORKERS,
+                    progress_callback=progress_callback,
                 ),
                 timeout=timeout,
             )
+            # Final progress print (force a 100% update)
+            with progress['lock']:
+                progress['candles'] = len(candles)
+                progress['oldest_ts'] = progress['target_ts']
+                progress['last_print'] = 0  # force print
+            progress_callback(amount_of_seconds, amount_of_seconds, len(candles), "Worker-0")
+            print()  # newline after progress bar
         except asyncio.TimeoutError:
+            print()
             logmsg(f"Attempt {attempt}/{MAX_FETCH_RETRIES}: fetch timed out.")
             candles = []
         except Exception as e:
+            print()
             logmsg(f"Attempt {attempt}/{MAX_FETCH_RETRIES} raised: {e}")
             candles = []
 
         if candles:
-            # تنسيق الشموع + إزالة المكررات + محاذاة الأوقات
+            # Format candles + dedupe + align timestamps
             formatted = []
             seen_times = set()
             for c in candles:
@@ -1428,10 +1501,17 @@ async def fetch_candles_for_asset(client: Quotex, asset: str, days: int,
                 except Exception:
                     continue
             formatted.sort(key=lambda x: x['time'])
-            logmsg(f"Fetched {len(formatted)} candles for {display} (attempt {attempt})")
+            # Compute final stats
+            fetch_elapsed = time.time() - progress['fetch_start']
+            avg_speed = len(formatted) / fetch_elapsed if fetch_elapsed > 0 else 0
+            logmsg(
+                f"OK Fetched {Colors.GREEN}{len(formatted):,}{Colors.RESET} candles "
+                f"in {int(fetch_elapsed//60):02d}:{int(fetch_elapsed%60):02d} "
+                f"({avg_speed:.0f} c/s) - {display} (attempt {attempt})"
+            )
             return formatted
 
-        # exponential backoff بين الـ retries
+        # exponential backoff between retries
         if attempt < MAX_FETCH_RETRIES:
             delay = min(RETRY_BACKOFF_BASE * (2 ** (attempt - 1)), RETRY_BACKOFF_MAX)
             logmsg(f"Retry in {delay:.1f}s...")
