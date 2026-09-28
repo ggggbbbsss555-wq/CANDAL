@@ -29,6 +29,7 @@ import json
 import time
 import random
 import re
+import shutil
 import logging
 import asyncio
 import threading
@@ -1147,8 +1148,31 @@ sys.excepthook = _main_excepthook
 
 
 # ==============================================================================
-# SECTION 9: CREDENTIALS MANAGEMENT (جديد — حفظ الإيميل وكلمة المرور)
+# SECTION 9: CREDENTIALS MANAGEMENT (حفظ الإيميل وكلمة المرور)
 # ==============================================================================
+SESSION_FILE = Path("session.json")
+BROWSER_DIR = Path("browser")
+
+
+def purge_old_session() -> None:
+    """Delete any saved Quotex session so we always log in fresh.
+
+    Quotex may reject connections that reuse a stale token from a previous
+    run. By deleting session.json and the browser/ cache directory on
+    startup, we force a brand-new login every time.
+    """
+    try:
+        if SESSION_FILE.exists():
+            SESSION_FILE.unlink()
+    except Exception:
+        pass
+    try:
+        if BROWSER_DIR.exists():
+            shutil.rmtree(BROWSER_DIR, ignore_errors=True)
+    except Exception:
+        pass
+
+
 def load_credentials() -> Optional[Dict[str, str]]:
     """يقرأ بيانات الدخول من credentials.json. يُعيد None إذا لم توجد."""
     if not CREDENTIALS_FILE.exists():
@@ -1506,6 +1530,9 @@ async def prompt_timeframe() -> Optional[int]:
 
 async def main_async():
     print_banner()
+
+    # ===== Purge any stale Quotex session so we always log in fresh =====
+    purge_old_session()
 
     # ===== Read credentials (auto-saved, includes password) =====
     creds = load_credentials()
