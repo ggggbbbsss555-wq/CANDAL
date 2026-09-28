@@ -1507,14 +1507,10 @@ async def prompt_timeframe() -> Optional[int]:
 async def main_async():
     print_banner()
 
-    # ===== Read credentials (auto-saved) =====
+    # ===== Read credentials (auto-saved, includes password) =====
     creds = load_credentials()
-    saved_proxy = ""
     if creds:
         print(f"{Colors.GREEN}Found saved credentials for: {creds['email']}{Colors.RESET}")
-        saved_proxy = creds.get("proxy", "") or ""
-        if saved_proxy:
-            print(f"{Colors.GREEN}Saved proxy: {saved_proxy}{Colors.RESET}")
         use_saved = (await ainput(f"{Colors.YELLOW}Use saved credentials? (Y/n): {Colors.RESET}")).strip().lower()
         if use_saved in ('y', '', 'yes'):
             email, password = creds['email'], creds['password']
@@ -1530,29 +1526,15 @@ async def main_async():
         print(f"{Colors.RED}Invalid credentials.{Colors.RESET}")
         return
 
-    # ===== Ask for proxy (optional) =====
-    proxy = ""
-    proxy_input = (await ainput(
-        f"{Colors.YELLOW}Proxy (e.g. http://1.2.3.4:8080 or socks5://1.2.3.4:1080) - leave empty if none: {Colors.RESET}"
-    )).strip()
-    if proxy_input:
-        proxy = proxy_input
-    elif saved_proxy:
-        proxy = saved_proxy
-
-    if proxy:
-        logmsg(f"Using proxy: {proxy}")
-
     # ===== Connect to Quotex =====
     logmsg("Connecting to Quotex...")
-    client = await connect_quotex(email, password, max_attempts=3, proxies=proxy or None)
+    client = await connect_quotex(email, password, max_attempts=3)
     if client is None:
         print(f"\n{Colors.RED}Connection failed after multiple attempts.{Colors.RESET}")
-        print(f"{Colors.YELLOW}If you are in a region blocked by Quotex, use a proxy in a supported country.{Colors.RESET}")
         return
 
-    # Save credentials after successful connection
-    save_credentials(email, password, proxy)
+    # Save credentials (including password) after successful connection
+    save_credentials(email, password)
     print(f"{Colors.GREEN}Credentials saved to {CREDENTIALS_FILE.name}{Colors.RESET}\n")
 
     # ===== Start keepalive in the background =====
