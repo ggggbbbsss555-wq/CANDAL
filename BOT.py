@@ -242,8 +242,12 @@ class Browser(Session):
             'DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384')
         self.source_address = kwargs.pop('source_address', None)
         self.server_hostname = kwargs.pop('server_hostname', None)
-        self.proxies = kwargs.pop('proxies', None)
+        # استخرج proxies قبل super().__init__ (الذي يعيد ضبط self.proxies إلى {})
+        _proxies = kwargs.pop('proxies', None)
         super().__init__(*args, **kwargs)
+        # اضبط proxies بعد super().__init__ حتى لا تُكتب فوقها بـ {}
+        # هذا يحل المشكلة: send_request يفحص self.proxies لكن Session.__init__ يفرغها
+        self.proxies = _proxies
         self.headers.update(self.get_headers())
         self.mount('https://', CipherSuiteAdapter(
             ecdhCurve=self.ecdhCurve, cipherSuite=self.cipherSuite,
@@ -385,7 +389,9 @@ class Login(Browser):
 
 class Settings(Browser):
     def __init__(self, api):
-        super().__init__()
+        # مرّر proxies من api إلى Settings
+        proxies_dict = api._normalize_proxies(api.proxies) if hasattr(api, '_normalize_proxies') else None
+        super().__init__(proxies=proxies_dict)
         self.set_headers()
         self.api = api
         self.headers = self.get_headers()
@@ -655,9 +661,13 @@ class QuotexAPI:
         self.lang = lang
         self.user_data_dir = user_data_dir
         self.session_data = {}
-        self.browser = Browser()
+        # مرّر proxies إلى Browser حتى يستخدمها HTTP (Login + Settings)
+        # إذا proxy هو "http://1.2.3.4:8080" نُحوّله إلى dict متوافق مع requests
+        proxies_dict = self._normalize_proxies(proxies)
+        self.browser = Browser(proxies=proxies_dict)
         self.browser.set_headers()
         self.settings = Settings(self)
+        self.settings.proxies = proxies_dict  # تأكد أن Settings أيضاً يستخدم البروكسي
         self.candles = CandlesObj()
         self.candle_v2_data = {}
         self.realtime_price = defaultdict(list)
@@ -665,8 +675,22 @@ class QuotexAPI:
         self._async_loop: Optional[asyncio.AbstractEventLoop] = None
         self.last_message_at: float = time.time()
 
+    @staticmethod
+    def _normalize_proxies(proxies) -> Optional[dict]:
+        """يحوّل proxy string (أو dict) إلى dict صيغة requests."""
+        if not proxies:
+            return None
+        if isinstance(proxies, dict):
+            return proxies
+        if isinstance(proxies, str):
+            # صيغة مثل "http://1.2.3.4:8080" أو "socks5://1.2.3.4:1080"
+            return {"http": proxies, "https": proxies}
+        return None
+
     @property
-    def login(self): return Login(self)
+    def login(self):
+        # مرّر proxies إلى Login حتى يستخدمها طلبات HTTP لتسجيل الدخول
+        return Login(self, proxies=self._normalize_proxies(self.proxies))
 
     def send_websocket_request(self, data, no_force_send=True):
         if no_force_send:
@@ -727,6 +751,22 @@ class QuotexAPI:
             "sslopt": {"check_hostname": True, "cert_reqs": ssl.CERT_REQUIRED,
                        "ca_certs": cacert, "context": ssl_context},
         }
+        # مرّر البروكسي إلى WebSocket إذا وُجد
+        proxy_dict = self._normalize_proxies(self.proxies)
+        if proxy_dict:
+            proxy_url = proxy_dict.get("http") or proxy_dict.get("https")
+            if proxy_url:
+                # تحليل "http://host:port" أو "socks5://host:port"
+                try:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(proxy_url)
+                    if parsed.hostname and parsed.port:
+                        payload["http_proxy_host"] = parsed.hostname
+                        payload["http_proxy_port"] = parsed.port
+                        if parsed.scheme.startswith("socks"):
+                            payload["http_proxy_auth_timeout"] = 30
+                except Exception:
+                    pass
         if platform.system() == "Linux":
             payload["sslopt"]["ssl_version"] = ssl.PROTOCOL_TLS
         self.websocket_thread = threading.Thread(
@@ -1122,14 +1162,20 @@ def load_credentials() -> Optional[Dict[str, str]]:
         return None
 
 
-def save_credentials(email: str, password: str) -> bool:
-    """يحفظ بيانات الدخول في credentials.json لإعادة الاستخدام لاحقاً."""
+def save_credentials(email: str, password: str, proxy: str = "") -> bool:
+    """يحفظ بيانات الدخول والبروكسي في credentials.json لإعادة الاستخدام لاحقاً."""
     try:
-        CREDENTIALS_FILE.write_text(json.dumps({
+        existing = {}
+        if CREDENTIALS_FILE.exists():
+            try: existing = json.loads(CREDENTIALS_FILE.read_text())
+            except Exception: pass
+        existing.update({
             "email": email,
             "password": password,
+            "proxy": proxy,
             "saved_at": int(time.time())
-        }, indent=2))
+        })
+        CREDENTIALS_FILE.write_text(json.dumps(existing, indent=2))
         return True
     except Exception as e:
         logmsg(f"Failed to save credentials: {e}")
@@ -1259,12 +1305,21 @@ async def keepalive_loop(client: Quotex, stop_event: asyncio.Event):
             pass  # انتهى المحدّد = أرسل ping التالي
 
 
-async def connect_quotex(email: str, password: str, max_attempts: int = 3) -> Optional[Quotex]:
-    """يتصل بـ Quotex ويعيد كائن Quotex. يُعيد None عند الفشل."""
+async def connect_quotex(email: str, password: str, max_attempts: int = 3,
+                         proxies: Optional[str] = None) -> Optional[Quotex]:
+    """يتصل بـ Quotex ويعيد كائن Quotex. يُعيد None عند الفشل.
+
+    المعاملات:
+      email      : بريد Quotex
+      password   : كلمة المرور
+      max_attempts: عدد محاولات الاتصال
+      proxies    : URL البروكسي (مثل "http://1.2.3.4:8080" أو "socks5://1.2.3.4:1080")
+    """
     for attempt in range(1, max_attempts + 1):
         try:
             client = Quotex(email=email, password=password,
-                            host="qxbroker.com", lang="en")
+                            host="qxbroker.com", lang="en",
+                            proxies=proxies)
             check, reason = await client.connect()
             if check:
                 try:
@@ -1443,8 +1498,12 @@ async def main_async():
 
     # ===== قراءة بيانات الدخول (مع الحفظ الآلي) =====
     creds = load_credentials()
+    saved_proxy = ""
     if creds:
         print(f"{Colors.GREEN}تم العثور على بيانات دخول محفوظة لـ: {creds['email']}{Colors.RESET}")
+        saved_proxy = creds.get("proxy", "") or ""
+        if saved_proxy:
+            print(f"{Colors.GREEN}البروكسي المحفوظ: {saved_proxy}{Colors.RESET}")
         use_saved = input(f"{Colors.YELLOW}استخدامها؟ (Y/n): {Colors.RESET}").strip().lower()
         if use_saved in ('y', '', 'yes', 'نعم'):
             email, password = creds['email'], creds['password']
@@ -1460,15 +1519,29 @@ async def main_async():
         print(f"{Colors.RED}بيانات الدخول غير صالحة.{Colors.RESET}")
         return
 
+    # ===== سؤال البروكسي (اختياري) =====
+    proxy = ""
+    proxy_input = input(
+        f"{Colors.YELLOW}البروكسي (مثل http://1.2.3.4:8080 أو socks5://1.2.3.4:1080) — اتركه فارغاً إن لم يكن: {Colors.RESET}"
+    ).strip()
+    if proxy_input:
+        proxy = proxy_input
+    elif saved_proxy:
+        proxy = saved_proxy
+
+    if proxy:
+        logmsg(f"Using proxy: {proxy}")
+
     # ===== الاتصال بـ Quotex =====
     logmsg("Connecting to Quotex...")
-    client = await connect_quotex(email, password, max_attempts=3)
+    client = await connect_quotex(email, password, max_attempts=3, proxies=proxy or None)
     if client is None:
         print(f"\n{Colors.RED}فشل الاتصال بعد عدة محاولات.{Colors.RESET}")
+        print(f"{Colors.YELLOW}إذا كنت في منطقة محظورة من Quotex، استخدم proxy في دولة مدعومة.{Colors.RESET}")
         return
 
     # حفظ بيانات الدخول بعد نجاح الاتصال
-    save_credentials(email, password)
+    save_credentials(email, password, proxy)
     print(f"{Colors.GREEN}تم حفظ بيانات الدخول في {CREDENTIALS_FILE.name}{Colors.RESET}\n")
 
     # ===== تشغيل keepalive في الخلفية =====
