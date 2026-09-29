@@ -1,0 +1,17 @@
+asset,direction,shape,context,momentum,train_signals,train_l1_wins,train_l1_win_rate,train_mart_wins,train_combined_wins,train_combined_win_rate,test_signals,test_l1_wins,test_l1_win_rate,test_mart_wins,test_combined_wins,test_combined_win_rate,p_value,label
+USDZAR_otc,SELL,red_bar,5greens,bb_upper_breach,26,19,0.7307692307692307,4,23,0.8846153846153846,7,5,0.7142857142857143,2,7,1.0,0.009301464950567884,red_bar+5greens+bb_upper_breach
+BRLUSD_otc,SELL,star,2greens,bb_upper_breach,17,12,0.7058823529411765,4,16,0.9411764705882353,5,3,0.6,2,5,1.0,0.044777537206821316,star+2greens+bb_upper_breach
+USDIDR_otc,SELL,star,3greens,bb_upper_breach,17,12,0.7058823529411765,4,16,0.9411764705882353,5,4,0.8,1,5,1.0,0.044777537206821316,star+3greens+bb_upper_breach
+BRLUSD_otc,SELL,star,4greens,body_shrinking,20,15,0.75,2,17,0.85,11,6,0.5454545454545454,4,10,0.9090909090909091,0.012673659338734156,star+4greens+body_shrinking
+USDPHP_otc,SELL,doji,5greens,body_growing,25,17,0.68,5,22,0.88,11,7,0.6363636363636364,3,10,0.9090909090909091,0.035930319112925824,doji+5greens+body_growing
+EURUSD_otc,SELL,red_bar,3greens,macd_cross_down,32,21,0.65625,7,28,0.875,19,10,0.5263157894736842,7,17,0.8947368421052632,0.03854993587177091,red_bar+3greens+macd_cross_down
+USDIDR_otc,SELL,star,2greens,bb_upper_breach,21,15,0.7142857142857143,4,19,0.9047619047619048,8,5,0.625,2,7,0.875,0.024767306717813353,star+2greens+bb_upper_breach
+USDMXN_otc,SELL,red_bar,4greens,macd_cross_down,18,14,0.7777777777777778,3,17,0.9444444444444444,8,2,0.25,5,7,0.875,0.009211062727049524,red_bar+4greens+macd_cross_down
+USDINR_otc,BUY,small_green,5reds,rsi_oversold,33,23,0.696969696969697,7,30,0.9090909090909091,21,15,0.7142857142857143,3,18,0.8571428571428571,0.011817550991416959,small_green+5reds+rsi_oversold
+USDINR_otc,BUY,hammer,4reds,rsi_oversold,16,12,0.75,4,16,1.0,7,5,0.7142857142857143,1,6,0.8571428571428571,0.02275013194817921,hammer+4reds+rsi_oversold
+USDMXN_otc,SELL,wick_rej_up,3greens,body_shrinking,32,21,0.65625,7,28,0.875,12,7,0.5833333333333334,3,10,0.8333333333333334,0.03854993587177091,wick_rej_up+3greens+body_shrinking
+USDZAR_otc,SELL,red_bar,4greens,bb_upper_breach,39,26,0.6666666666666666,8,34,0.8717948717948718,12,7,0.5833333333333334,3,10,0.8333333333333334,0.01868649417032575,red_bar+4greens+bb_upper_breach
+USDINR_otc,BUY,wick_rej_down,2reds,rsi_oversold,15,11,0.7333333333333333,3,14,0.9333333333333333,6,4,0.6666666666666666,1,5,0.8333333333333334,0.0353505724329915,wick_rej_down+2reds+rsi_oversold
+EURNZD_otc,SELL,small_red,3greens,body_growing,27,18,0.6666666666666666,6,24,0.8888888888888888,10,6,0.6,2,8,0.8,0.041632258331775196,small_red+3greens+body_growing
+USDPHP_otc,SELL,doji,5greens,ema_below,27,18,0.6666666666666666,7,25,0.9259259259259259,10,4,0.4,4,8,0.8,0.041632258331775196,doji+5greens+ema_below
+USDARS_otc,SELL,star,5greens,body_shrinking,17,12,0.7058823529411765,4,16,0.9411764705882353,5,2,0.4,2,4,0.8,0.044777537206821316,star+5greens+body_shrinking
