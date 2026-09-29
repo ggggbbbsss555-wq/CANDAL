@@ -1256,7 +1256,12 @@ def format_signal(asset: str, direction: str, exploit_name: str, exploit_id: int
 # SIGNAL ENGINE
 # =============================================================================
 class SignalEngine:
-    """Evaluates all 25 exploits on each new candle. Fires signals to Telegram."""
+    """Evaluates all 25 exploits on each new candle. Fires signals to Telegram.
+
+    Also tracks the OUTCOME of each signal (win/loss) 1 minute later, when
+    the predicted bar (entry bar + 1) closes. Sends a follow-up Telegram
+    message: "USDPHP-OTC ➜ WIN ✅" or "USDPHP-OTC ➜ LOSS ❌".
+    """
 
     def __init__(self, client):
         self.client = client
@@ -1265,17 +1270,26 @@ class SignalEngine:
         # Cooldown: prevent firing same exploit on same asset within 60s
         self.cooldowns = {}  # (exploit_id, asset) -> last fire time
         self.COOLDOWN_SECONDS = 60
+        # Pending signals awaiting outcome verification
+        # Each entry: {
+        #   "asset", "direction" ("BUY"/"SELL"), "exploit_id", "exploit_name",
+        #   "entry_minute_ts" (int, the minute the signal was sent),
+        #   "outcome_minute_ts" (int, the minute we need to verify — entry + 60s),
+        #   "entry_price" (float, close at signal bar),
+        # }
+        self.pending_signals = []
+        # Stats counter
+        self.stats = {"wins": 0, "losses": 0, "pending": 0}
 
     def update_candles(self, asset: str, new_candle: dict):
         """Called by the live stream when a new candle arrives.
 
         Adds the candle to the asset's DataFrame and evaluates all exploits.
+        Also checks pending signals for outcome verification.
         """
         if asset not in self.asset_dfs:
-            # Will be populated by initial fetch
             return
         df = self.asset_dfs[asset]
-        # Check if this candle is new (timestamp > last in df)
         ts = int(new_candle.get("time", 0))
         if ts == 0: return
         if len(df) > 0 and ts <= df.index[-1]:
@@ -1296,36 +1310,32 @@ class SignalEngine:
             new_row["time"] = pd.to_datetime(new_row["time"], unit="s", utc=True)
             new_row = new_row.set_index("time")
             df = pd.concat([df, new_row])
-            # Keep only last 1000 candles
             if len(df) > 1000:
                 df = df.iloc[-1000:]
             self.asset_dfs[asset] = df
             # Re-compute indicators on new candle
             self.asset_dfs[asset] = add_indicators(self.asset_dfs[asset])
-            # Evaluate exploits
+            # Evaluate exploits (this fires signals at bar i predicting bar i+1)
             self._evaluate_exploits(asset, ts)
+            # Check pending signals: did any signal's outcome bar just close?
+            self._check_outcomes(asset, ts)
 
     def _evaluate_exploits(self, asset: str, current_ts: int):
         """Evaluate all exploits that target this asset at the current bar."""
-        # Current bar is the last in df
         df = self.asset_dfs[asset]
         if len(df) == 0: return
         last_bar = df.iloc[-1]
-        # Hour-of-day (UTC) of the current bar
         current_hour_utc = df.index[-1].hour
 
         for exploit_id, exploit_asset, name, direction, conditions, hour_filter in EXPLOITS:
             if exploit_asset != asset: continue
-            # Check hour filter
             if hour_filter is not None and hour_filter != current_hour_utc:
                 continue
-            # Check cooldown
             cooldown_key = (exploit_id, asset)
             now = time.time()
             if cooldown_key in self.cooldowns:
                 if now - self.cooldowns[cooldown_key] < self.COOLDOWN_SECONDS:
                     continue
-            # Check all conditions are True at the last bar
             all_true = True
             for cond in conditions:
                 val = last_bar.get(cond)
@@ -1336,13 +1346,90 @@ class SignalEngine:
             # Signal fired!
             self.cooldowns[cooldown_key] = now
             entry_time_utc = df.index[-1].strftime("%H:%M")
-            # Find historical L1 win rate from CSV (cached)
+            entry_minute_ts = (int(df.index[-1].timestamp()) // 60) * 60
+            outcome_minute_ts = entry_minute_ts + 60  # next 1-minute bar
+            entry_price = float(last_bar["close"])
             l1_win_rate = self._get_historical_win_rate(exploit_id)
             # Send signal
             msg = format_signal(asset, direction, name, exploit_id, entry_time_utc, l1_win_rate)
             logmsg(f"SIGNAL #{exploit_id} {asset} {direction} (entry {entry_time_utc} UTC)")
-            # Schedule async send
             asyncio.create_task(send_telegram_signal(msg))
+            # Register pending signal for outcome tracking
+            self.pending_signals.append({
+                "asset": asset,
+                "direction": direction,  # "BUY" or "SELL"
+                "exploit_id": exploit_id,
+                "exploit_name": name,
+                "entry_minute_ts": entry_minute_ts,
+                "outcome_minute_ts": outcome_minute_ts,
+                "entry_price": entry_price,
+                "entry_time_utc": entry_time_utc,
+            })
+            self.stats["pending"] += 1
+
+    def _check_outcomes(self, asset: str, current_minute_ts: int):
+        """Check if any pending signal's outcome bar just closed.
+
+        When the current_minute_ts matches a pending signal's outcome_minute_ts,
+        we look at the just-closed candle (the outcome bar) and check its
+        direction vs the predicted direction:
+          - BUY signal: WIN if outcome bar is green (close > open)
+          - SELL signal: WIN if outcome bar is red (close < open)
+          - Doji (close == open): LOSS
+        """
+        if not self.pending_signals: return
+        # Get the just-closed candle from the asset's DataFrame
+        df = self.asset_dfs.get(asset)
+        if df is None or len(df) < 2: return
+        # The last candle in df IS the outcome bar (it was just appended)
+        outcome_bar = df.iloc[-1]
+        outcome_open = float(outcome_bar["open"])
+        outcome_close = float(outcome_bar["close"])
+        outcome_ts = int(df.index[-1].timestamp())
+        outcome_minute_ts = (outcome_ts // 60) * 60
+
+        # Find any pending signals for this asset whose outcome minute matches
+        still_pending = []
+        for sig in self.pending_signals:
+            if sig["asset"] != asset:
+                still_pending.append(sig)
+                continue
+            if sig["outcome_minute_ts"] != outcome_minute_ts:
+                # Not yet — keep waiting
+                still_pending.append(sig)
+                continue
+            # This signal's outcome bar just closed. Verify it.
+            direction = sig["direction"]
+            if direction == "BUY":
+                # BUY wins if outcome bar is green (close > open)
+                is_win = outcome_close > outcome_open
+            else:
+                # SELL wins if outcome bar is red (close < open)
+                is_win = outcome_close < outcome_open
+            # Send outcome message
+            self._send_outcome(sig, is_win, outcome_open, outcome_close)
+            # Update stats
+            self.stats["pending"] -= 1
+            if is_win:
+                self.stats["wins"] += 1
+            else:
+                self.stats["losses"] += 1
+        self.pending_signals = still_pending
+
+    def _send_outcome(self, sig: dict, is_win: bool, outcome_open: float, outcome_close: float):
+        """Send the WIN/LOSS follow-up message to Telegram."""
+        asset_display = sig["asset"].replace("_otc", "-OTC").upper()
+        if is_win:
+            outcome_text = "win ✅"
+            log_msg = f"OUTCOME {asset_display} ➜ WIN ✅ (#{sig['exploit_id']} {sig['direction']})"
+        else:
+            outcome_text = "𝑳𝑶𝑺𝑺❌"
+            log_msg = f"OUTCOME {asset_display} ➜ LOSS ❌ (#{sig['exploit_id']} {sig['direction']})"
+        # Build message — short, in the style the user requested
+        # Example: USDPHP-OTC ➜ win ✅
+        msg = f"{asset_display}  ➜  {outcome_text}"
+        logmsg(log_msg)
+        asyncio.create_task(send_telegram_signal(msg))
 
     def _get_historical_win_rate(self, exploit_id: int) -> float:
         """Get historical L1 win rate from the v3 CSV (cached)."""
@@ -1638,8 +1725,16 @@ async def main_async():
     try:
         while True:
             await asyncio.sleep(60)
-            # Status print every minute
-            logmsg(f"Monitoring {len(successful_assets)} assets × {len(EXPLOITS)} exploits...")
+            # Status print every minute with stats
+            stats = signal_engine.stats
+            total = stats["wins"] + stats["losses"] + stats["pending"]
+            if total > 0:
+                wr = (stats["wins"] / (stats["wins"] + stats["losses"]) * 100) if (stats["wins"] + stats["losses"]) > 0 else 0
+                logmsg(f"Monitoring {len(successful_assets)} assets × {len(EXPLOITS)} exploits | "
+                       f"Wins: {stats['wins']} | Losses: {stats['losses']} | Pending: {stats['pending']} | "
+                       f"Win rate: {wr:.1f}%")
+            else:
+                logmsg(f"Monitoring {len(successful_assets)} assets × {len(EXPLOITS)} exploits...")
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}Shutting down...{Colors.RESET}")
     finally:
