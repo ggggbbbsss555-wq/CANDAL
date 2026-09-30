@@ -1,0 +1,238 @@
+{
+  "generated_at": "2026-09-30T05:07:37.613667+00:00",
+  "version": "v8-timezone-dow-minute",
+  "candles_dir": ".",
+  "days_filter": 100,
+  "start_time_utc": "02:00",
+  "today": "Wednesday",
+  "n_signals": 20,
+  "total_exploits_found": 35417,
+  "stats": {
+    "avg_train_wr": 0.95,
+    "avg_test_wr": 0.8,
+    "unique_assets": 9,
+    "expected_profit": 17.333333333333346
+  },
+  "signals": [
+    {
+      "rank": 1,
+      "utc_time": "02:00",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 1.0,
+      "test_comb": 0.5,
+      "total_n": 14,
+      "mtg_use": 0.33333333333333337
+    },
+    {
+      "rank": 2,
+      "utc_time": "02:04",
+      "asset": "USDDZD_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 1.0,
+      "test_comb": 0.5,
+      "total_n": 14,
+      "mtg_use": 0.33333333333333337
+    },
+    {
+      "rank": 3,
+      "utc_time": "02:08",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 0.5,
+      "total_n": 14,
+      "mtg_use": 0.33333333333333337
+    },
+    {
+      "rank": 4,
+      "utc_time": "02:11",
+      "asset": "USDINR_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 1.0,
+      "test_comb": 0.5,
+      "total_n": 14,
+      "mtg_use": 0.16666666666666663
+    },
+    {
+      "rank": 5,
+      "utc_time": "02:15",
+      "asset": "USDNGN_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.41666666666666663
+    },
+    {
+      "rank": 6,
+      "utc_time": "02:18",
+      "asset": "USDBDT_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 0.5,
+      "total_n": 14,
+      "mtg_use": 0.16666666666666663
+    },
+    {
+      "rank": 7,
+      "utc_time": "02:22",
+      "asset": "USDARS_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.5
+    },
+    {
+      "rank": 8,
+      "utc_time": "02:26",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.41666666666666663
+    },
+    {
+      "rank": 9,
+      "utc_time": "02:29",
+      "asset": "USDCOP_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.33333333333333337
+    },
+    {
+      "rank": 10,
+      "utc_time": "02:33",
+      "asset": "BRLUSD_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 1.0,
+      "test_comb": 0.5,
+      "total_n": 14,
+      "mtg_use": 0.33333333333333337
+    },
+    {
+      "rank": 11,
+      "utc_time": "02:36",
+      "asset": "USDINR_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.25
+    },
+    {
+      "rank": 12,
+      "utc_time": "02:39",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 1.0,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.25
+    },
+    {
+      "rank": 13,
+      "utc_time": "02:42",
+      "asset": "USDDZD_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.33333333333333337
+    },
+    {
+      "rank": 14,
+      "utc_time": "02:45",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 1.0,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.08333333333333337
+    },
+    {
+      "rank": 15,
+      "utc_time": "02:48",
+      "asset": "USDINR_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 1.0,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.25
+    },
+    {
+      "rank": 16,
+      "utc_time": "02:52",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.41666666666666663
+    },
+    {
+      "rank": 17,
+      "utc_time": "02:56",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "day": "Wed",
+      "train_comb": 1.0,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.25
+    },
+    {
+      "rank": 18,
+      "utc_time": "02:59",
+      "asset": "USDARS_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 0.5,
+      "total_n": 14,
+      "mtg_use": 0.25
+    },
+    {
+      "rank": 19,
+      "utc_time": "03:02",
+      "asset": "USDDZD_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 1.0,
+      "total_n": 14,
+      "mtg_use": 0.33333333333333337
+    },
+    {
+      "rank": 20,
+      "utc_time": "03:05",
+      "asset": "USDMXN_otc",
+      "direction": "CALL",
+      "day": "Wed",
+      "train_comb": 0.9166666666666666,
+      "test_comb": 0.5,
+      "total_n": 14,
+      "mtg_use": 0.41666666666666663
+    }
+  ]
+}
