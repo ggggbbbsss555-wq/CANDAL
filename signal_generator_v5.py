@@ -116,6 +116,9 @@ def extract_features(candles: list):
         return pd.DataFrame()
     
     df = pd.DataFrame(candles)
+    # Add time columns for historical appearance tracking
+    df["time_dt"] = pd.to_datetime(df["time"], unit="s", utc=True)
+    df["hour"] = df["time_dt"].dt.hour
     df["body"] = (df["close"] - df["open"]).abs()
     df["range"] = df["high"] - df["low"]
     df["dir"] = np.sign(df["close"] - df["open"])
@@ -353,6 +356,46 @@ def search_patterns(asset: str, candles: list):
         label = " + ".join(conditions)
         n_conds = len(conditions)
         
+        # === Extract historical appearance times ===
+        # Find ALL rows in the FULL dataframe where this pattern fired
+        full_mask = pd.Series([True] * len(df), index=df.index)
+        if s_col:
+            if direction == "BUY":
+                full_mask = full_mask & make_shape_mask(s_name, s_col, df, "BUY")
+            else:
+                full_mask = full_mask & make_shape_mask(s_name, s_col, df, "SELL")
+        if c_col:
+            full_mask = full_mask & (df[c_col] == True)
+        if m_col:
+            full_mask = full_mask & (df[m_col] == True)
+        
+        firing_df = df[full_mask]
+        n_firing = len(firing_df)
+        
+        if n_firing > 0:
+            # All historical times (HH:MM UTC)
+            all_times = firing_df["time_dt"].dt.strftime("%H:%M").tolist() if "time_dt" in firing_df.columns else []
+            # Hour distribution
+            if "hour" in firing_df.columns:
+                hour_dist = firing_df["hour"].value_counts().sort_index().to_dict()
+                # Find peak hour (most active)
+                peak_hour = int(firing_df["hour"].mode().iloc[0]) if len(firing_df) > 0 else 0
+            else:
+                hour_dist = {}
+                peak_hour = 0
+            # Most common times (top 5)
+            from collections import Counter
+            time_counter = Counter(all_times)
+            top_times = time_counter.most_common(5)
+            # Average hour
+            avg_hour = float(firing_df["hour"].mean()) if "hour" in firing_df.columns and len(firing_df) > 0 else 0
+        else:
+            all_times = []
+            hour_dist = {}
+            peak_hour = 0
+            top_times = []
+            avg_hour = 0
+        
         return {
             "asset": asset,
             "direction": direction,
@@ -370,6 +413,13 @@ def search_patterns(asset: str, candles: list):
             "test_combined_win_rate": test_res["combined_win_rate"],
             "test_mtg_use_rate": test_res["mtg_use_rate"],
             "p_value": p,
+            # === NEW: Historical appearance times ===
+            "total_firings": n_firing,
+            "peak_hour_utc": peak_hour,
+            "avg_hour_utc": avg_hour,
+            "top_times_utc": top_times,  # [(HH:MM, count), ...]
+            "all_times_utc": all_times[:30],  # first 30 times (for display)
+            "hour_distribution": hour_dist,
         }
     
     # === 2-condition: shape + context ===
@@ -501,20 +551,41 @@ def main():
     print(f"{Colors.BOLD}  Total patterns: {len(all_patterns)}{Colors.RESET}")
     print(f"{Colors.CYAN}{'='*120}{Colors.RESET}")
     
-    # Show top 100 patterns (or all if less)
+    # Show top 100 patterns (or all if less) with appearance times
     n_show = min(100, len(all_patterns))
     print(f"\n{Colors.BOLD}Top {n_show} Patterns (by test combined win rate):{Colors.RESET}")
-    print(f"\n{'#':<4}{'Asset':<14}{'Dir':<6}{'#C':<4}{'Pattern':<50}{'Train L1%':<10}{'Train Comb%':<12}{'Test Comb%':<11}{'Samp'}")
-    print('-' * 130)
+    print(f"\n{'#':<4}{'Asset':<14}{'Dir':<6}{'Pattern':<48}{'Test%':<8}{'Peak':<7}{'Fires':<7}{'Top historical times (UTC)'}")
+    print('-' * 140)
     for i, p in enumerate(all_patterns[:n_show], 1):
-        train_l1_color = Colors.GREEN if p["train_l1_win_rate"] >= 0.65 else Colors.YELLOW if p["train_l1_win_rate"] >= 0.55 else Colors.RESET
-        train_comb_color = Colors.GREEN if p["train_combined_win_rate"] >= 0.85 else Colors.YELLOW if p["train_combined_win_rate"] >= 0.75 else Colors.RESET
         test_color = Colors.GREEN if p["test_combined_win_rate"] >= 0.80 else Colors.YELLOW if p["test_combined_win_rate"] >= 0.70 else Colors.RED
-        print(f"{i:<4}{p['asset']:<14}{p['direction']:<6}{p['n_conditions']:<4}{p['pattern_label']:<50}"
-              f"{train_l1_color}{p['train_l1_win_rate']*100:>5.1f}%{Colors.RESET}    "
-              f"{train_comb_color}{p['train_combined_win_rate']*100:>5.1f}%{Colors.RESET}       "
-              f"{test_color}{p['test_combined_win_rate']*100:>5.1f}%{Colors.RESET}      "
-              f"{p['train_samples']}")
+        peak = f"{p['peak_hour_utc']:02d}:00"
+        n_fires = p.get("total_firings", 0)
+        # Top 3 historical times
+        top_t = p.get("top_times_utc", [])[:3]
+        top_str = ", ".join(f"{t}({c})" for t, c in top_t) if top_t else "N/A"
+        print(f"{i:<4}{p['asset']:<14}{p['direction']:<6}{p['pattern_label']:<48}"
+              f"{test_color}{p['test_combined_win_rate']*100:>5.1f}%{Colors.RESET}  "
+              f"{peak:<7}{n_fires:<7}{top_str}")
+    
+    # ===== Detailed view for TOP 30 patterns =====
+    print(f"\n{Colors.BOLD}Detailed view — Top 30 patterns with all appearance times:{Colors.RESET}")
+    print()
+    for i, p in enumerate(all_patterns[:30], 1):
+        test_color = Colors.GREEN if p["test_combined_win_rate"] >= 0.80 else Colors.YELLOW
+        print(f"{Colors.BOLD}#{i} {p['asset']} {p['direction']} — {p['pattern_label']}{Colors.RESET}")
+        print(f"   Test Combined: {test_color}{p['test_combined_win_rate']*100:.1f}%{Colors.RESET} | Train L1: {p['train_l1_win_rate']*100:.1f}% | Samples: {p.get('total_firings', 0)}")
+        print(f"   Peak hour (UTC): {p.get('peak_hour_utc', 0):02d}:00 | Avg hour: {p.get('avg_hour_utc', 0):.1f}")
+        # Hour distribution (top 5 hours)
+        hour_dist = p.get("hour_distribution", {})
+        if hour_dist:
+            sorted_hours = sorted(hour_dist.items(), key=lambda x: x[1], reverse=True)[:5]
+            hours_str = ", ".join(f"{h:02d}:00({c})" for h, c in sorted_hours)
+            print(f"   Top active hours: {hours_str}")
+        # All historical times (first 20)
+        all_t = p.get("all_times_utc", [])[:20]
+        if all_t:
+            print(f"   Historical times (UTC): {', '.join(all_t)}")
+        print()
     
     # ===== Statistics =====
     print(f"\n{Colors.CYAN}{Colors.BOLD}{'='*120}{Colors.RESET}")
@@ -601,6 +672,13 @@ def main():
                 "train_samples": p["train_samples"],
                 "test_samples": p["test_samples"],
                 "p_value": p["p_value"],
+                # Historical appearance times
+                "total_firings": p.get("total_firings", 0),
+                "peak_hour_utc": p.get("peak_hour_utc", 0),
+                "avg_hour_utc": p.get("avg_hour_utc", 0),
+                "top_times_utc": p.get("top_times_utc", []),
+                "all_times_utc": p.get("all_times_utc", []),
+                "hour_distribution": p.get("hour_distribution", {}),
             }
             for i, p in enumerate(all_patterns, 1)
         ],
