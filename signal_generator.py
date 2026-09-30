@@ -3,34 +3,41 @@
 """
 CANDAL Signal Generator — Advanced Binary Options Signal Bot
 ================================================================
-يتحكم المستخدم في:
-  1. مسار مجلد الشموع (candles_data)
-  2. ساعة البدء (يبدأ من تلك الساعة تقريباً، ليس بالضبط)
-  3. عدد الإشارات المطلوبة
+Interactive bot that lets the user control:
+  1. Candles folder path (where to find candle JSON files)
+  2. Days filter (only load files matching N days, e.g. 100, 30)
+  3. Start time (signals begin near this hour, not exactly)
+  4. Number of signals to generate
 
-الميزات:
-  - يجد تلقائياً كل ملفات الشموع في المجلد (نفس أسماء المستودع)
-  - يحلل كل عملة: يحسب L1, Combined, MTG use rate, MTG success rate
-  - يطبّق فلترة عميقة (مستوحاة من تحليل بوت المنافس):
-    * تجنّب الساعات السيئة (10, 16, 21, 23 UTC)
-    * تجنّب العملات الضعيفة (BRLUSD)
-    * تفضيل PUT عند التعادل
-    * MTG success ≥ 55%
-  - يبني جدول إشارات بفجوات 3-10 دقائق (تشويش)
-  - يحسب التوقيت المحلي (UTC+1 للجزائر)
-  - يطبع القائمة بصيغة جميلة
+Features:
+  - Auto-discovers candle files matching pattern: <asset>_1m_<days>d_<hash>.json
+  - Filters files by days count (user-specified: 100, 30, or any)
+  - Analyzes each asset on every minute-of-day (1440 minutes)
+  - Computes L1, Combined, MTG use, MTG success rates
+  - Applies deep filters (inspired by competitor bot analysis):
+    * Avoid hours with high loss rates (10, 16, 21, 23 UTC)
+    * Avoid assets with high loss rates (BRLUSD)
+    * Prefer PUT when L1 is tied (4% safer than CALL)
+    * MTG success >= 55%
+  - Builds schedule with 3-10 minute variable gaps (obfuscation)
+  - 10 minute gap after potential MTG (avoid missing next trade)
+  - Asset rotation (no same-asset in consecutive signals)
+  - Shows Algerian local time (UTC+1) with صباحاً/مساءً labels
+  - Saves schedule to JSON file
 
-طريقة الاستخدام:
+Usage:
   python signal_generator.py
   
-  ثم سيطلب منك:
-    1. مسار مجلد الشموع (default: candles_data في نفس المجلد)
-    2. ساعة البدء (HH:MM, 24h, UTC)
-    3. عدد الإشارات (default: 20)
+  Then it asks:
+    1. Candles folder path (default: candles_data)
+    2. Days filter (default: 100, accepts 30 or any number)
+    3. Start time HH:MM UTC (e.g. 20:00)
+    4. Number of signals (default: 20)
 
-الإخراج:
-  - قائمة الإشارات على الشاشة
-  - ملف JSON يحفظ القائمة: signals_YYYY-MM-DD_HH-MM.json
+Output:
+  - Beautiful colored schedule on screen
+  - JSON file: signals_YYYY-MM-DD_HH-MM.json
+  - Statistics: avg L1, Combined, MTG use, MTG success
 """
 import os
 import sys
@@ -46,35 +53,35 @@ import numpy as np
 import pandas as pd
 
 # =============================================================================
-# CONFIG (مستوحى من تحليل بوت المنافس — 998 إشارة)
+# CONFIG (inspired by competitor bot analysis — 998 signals)
 # =============================================================================
 
-# ساعات محددة للتجنب (نسبة خسائر > 15%)
+# Hours to avoid (loss rate > 15%)
 AVOID_HOURS_UTC = [10, 16, 21, 23]
 
-# عملات محددة للتجنب (نسبة خسائر > 14%)
-AVOID_ASSETS = ["BRLUSD_otc"]  # 16.8% خسائر
+# Assets to avoid (loss rate > 14%)
+AVOID_ASSETS = ["BRLUSD_otc"]  # 16.8% loss rate
 
-# ساعات مميزة (نسبة خسائر < 10%) — تفضيل عند الاختيار
+# Best hours (loss rate < 10%) — preferred for selection
 BEST_HOURS_UTC = [11, 17, 20, 15, 9, 18]
 
-# عملات مميزة (نسبة خسائر < 10.5%) — تفضيل عند الاختيار
+# Best assets (loss rate < 10.5%) — preferred for selection
 BEST_ASSETS = ["USDCOP_otc", "USDDZD_otc", "USDBDT_otc", "USDIDR_otc", "USDARS_otc"]
 
-# فلاتر التحليل
-MIN_SAMPLES = 80           # عينات كحد أدنى (80 يوم × 1)
-TARGET_L1 = 0.58           # L1 ≥ 58% (بدون مارتنجال)
-TARGET_COMBINED = 0.78     # Combined ≥ 78% (مع MTG)
-CHI_P_VAL = 0.10           # أهمية إحصائية (متساهلة)
-MAX_MTG_USE_RATE = 0.45    # MTG use ≤ 45%
-MIN_MTG_SUCCESS = 0.55     # MTG success ≥ 55%
+# Analysis filters
+MIN_SAMPLES = 80           # min samples (80 days × 1 sample per day)
+TARGET_L1 = 0.58           # L1 >= 58% (no martingale)
+TARGET_COMBINED = 0.78     # Combined >= 78% (with martingale)
+CHI_P_VAL = 0.10           # statistical significance
+MAX_MTG_USE_RATE = 0.45    # MTG use <= 45%
+MIN_MTG_SUCCESS = 0.55     # MTG success >= 55%
 
-# إعدادات الجدول
-GAP_MIN = 3               # أقل فجوة بين الإشارات (دقائق)
-GAP_NORMAL_MAX = 6         # فجوة عادية (3-6 دقائق)
-GAP_AFTER_MTG = 10        # فجوة كبيرة بعد MTG (10 دقائق)
+# Schedule settings
+GAP_MIN = 3               # min gap between signals (minutes)
+GAP_NORMAL_MAX = 6         # normal gap (3-6 minutes)
+GAP_AFTER_MTG = 10        # longer gap after MTG (10 minutes)
 
-# عرض الألوان
+# Display colors
 class Colors:
     GREEN = '\033[92m'; RED = '\033[91m'; YELLOW = '\033[93m'
     CYAN = '\033[96m'; BOLD = '\033[1m'; RESET = '\033[0m'
@@ -85,7 +92,7 @@ class Colors:
 # =============================================================================
 
 def chi_square_p(wins, total, p_null=0.5):
-    """احسب p-value لاختبار فرضية أن نسبة الفوز > p_null."""
+    """Compute one-tailed p-value for H0: win_rate > p_null."""
     if total == 0: return 1.0
     expected = p_null * total
     se = math.sqrt(p_null * (1 - p_null) * total)
@@ -94,13 +101,14 @@ def chi_square_p(wins, total, p_null=0.5):
     return 0.5 * (1 - math.erf(z / math.sqrt(2)))
 
 
-def discover_candle_files(candles_dir: Path):
-    """يجد تلقائياً كل ملفات الشموع في المجلد.
+def discover_candle_files(candles_dir: Path, days_filter: int = None):
+    """Auto-discover candle files in the given folder.
     
-    يبحث عن أنماط مثل: <asset>_1m_<days>d_<hash>.json
-    مثال: BRLUSD_otc_1m_100d_90c8207b.json
+    Pattern: <asset>_1m_<days>d_<hash>.json
+    Example: BRLUSD_otc_1m_100d_90c8207b.json
     
-    إذا وُجدت ملفات متعددة لنفس العملة، يختار الأحدث/الأطول.
+    If days_filter is specified, only load files matching that exact days count.
+    If multiple files exist for the same asset, pick the one with most days.
     """
     pattern = "*_1m_*d_*.json"
     files = sorted(candles_dir.glob(pattern))
@@ -110,11 +118,16 @@ def discover_candle_files(candles_dir: Path):
     by_asset = {}
     for f in files:
         try:
-            # استخرج اسم العملة وعدد الأيام
             asset = f.name.split("_1m_")[0]
             days = int(f.name.split("_1m_")[1].split("d_")[0])
         except (IndexError, ValueError):
             continue
+        
+        # Apply days filter if specified
+        if days_filter is not None and days != days_filter:
+            continue
+        
+        # Pick the file with most days for each asset (if multiple)
         if asset not in by_asset or days > by_asset[asset][0]:
             by_asset[asset] = (days, f)
     
@@ -122,11 +135,11 @@ def discover_candle_files(candles_dir: Path):
 
 
 def load_candles(file_path: Path):
-    """يحمل الشموع من ملف JSON."""
+    """Load candles from JSON file."""
     with open(file_path, "r") as fp:
         data = json.load(fp)
     candles = data.get("candles", [])
-    # ترتيب زمني + فلترة
+    # Sort by time + filter invalid
     candles = sorted(candles, key=lambda c: c.get("time", 0))
     candles = [c for c in candles
                if c.get("open", 0) > 0 and c.get("high", 0) > 0
@@ -135,10 +148,10 @@ def load_candles(file_path: Path):
 
 
 def analyze_minute_patterns(asset: str, candles: list):
-    """لكل دقيقة من اليوم (1440 دقيقة)، يحسب:
-       - L1 win rate (بدون مارتنجال)
-       - MTG use rate (كم مرة يحتاج MTG)
-       - MTG success rate (نسبة نجاح MTG)
+    """For each minute-of-day (1440 minutes), compute:
+       - L1 win rate (without martingale)
+       - MTG use rate (how often martingale is needed)
+       - MTG success rate (how often martingale recovers the loss)
        - Combined win rate (L1 + MTG)
     """
     if len(candles) < 100:
@@ -163,19 +176,19 @@ def analyze_minute_patterns(asset: str, candles: list):
         if n_valid < MIN_SAMPLES:
             continue
         
-        # CALL: توقع شمعة خضراء تالية
+        # CALL: predict next green candle
         call_l1_wins = int((g["next_dir_1"] == 1).sum())
         call_l1_lost = g[g["next_dir_1"] != 1]
         call_mtg_wins = int((call_l1_lost["next_dir_2"] == 1).sum())
         call_combined = call_l1_wins + call_mtg_wins
         
-        # PUT: توقع شمعة حمراء تالية
+        # PUT: predict next red candle
         put_l1_wins = int((g["next_dir_1"] == 0).sum())
         put_l1_lost = g[g["next_dir_1"] != 0]
         put_mtg_wins = int((put_l1_lost["next_dir_2"] == 0).sum())
         put_combined = put_l1_wins + put_mtg_wins
         
-        # اختر الأفضل (تفضيل PUT عند التعادل)
+        # Pick best direction (prefer PUT on tie — 4% safer)
         if call_l1_wins > put_l1_wins:
             direction = "CALL"; l1_wins = call_l1_wins
             mtg_wins = call_mtg_wins; combined_wins = call_combined
@@ -206,7 +219,7 @@ def analyze_minute_patterns(asset: str, candles: list):
 
 
 def filter_signals(stats: list):
-    """يطبّق الفلاتر العميقة على إشارات العملة."""
+    """Apply deep filters to asset signals."""
     filtered = []
     for s in stats:
         if s["asset"] in AVOID_ASSETS:
@@ -228,22 +241,20 @@ def filter_signals(stats: list):
 
 
 def build_schedule(eligible_signals: list, start_minute: int, n_signals: int):
-    """يبني جدول الإشارات بفجوات 3-10 دقائق.
+    """Build signal schedule with 3-10 minute variable gaps.
     
-    - يبدأ من start_minute (تقريباً، ليس بالضبط)
-    - فجوة عادية: 3-6 دقائق
-    - فجوة بعد MTG (إذا L1 < 65%): 10 دقائق
-    - لا يكرر نفس العملة في إشارتين متتاليتين
+    - Start near start_minute (not exactly at it)
+    - Normal gap: 3-6 minutes
+    - Gap after potential MTG (if L1 < 65%): 10 minutes
+    - No same-asset in consecutive signals
     """
-    # رتّب حسب الوقت
     by_time = sorted(eligible_signals, key=lambda x: x["minute_of_day"])
     
     schedule = []
-    used = set()  # (asset, minute) لمنع التكرار
     used_indices = set()
     current_minute = start_minute
     last_asset = None
-    last_l1 = 1.0  # آخر L1 (1.0 = لا يحتاج MTG)
+    last_l1 = 1.0  # last L1 (1.0 = no MTG needed)
     
     attempts = 0
     max_attempts = n_signals * 100
@@ -251,15 +262,15 @@ def build_schedule(eligible_signals: list, start_minute: int, n_signals: int):
     while len(schedule) < n_signals and attempts < max_attempts:
         attempts += 1
         
-        # حدّد الفجوة المطلوبة
+        # Determine required gap
         if last_l1 < 0.65:
-            required_gap = GAP_AFTER_MTG  # 10 دقائق بعد MTG
+            required_gap = GAP_AFTER_MTG  # 10 min after MTG
         else:
-            required_gap = random.randint(GAP_MIN, GAP_NORMAL_MAX)  # 3-6 دقائق
+            required_gap = random.randint(GAP_MIN, GAP_NORMAL_MAX)  # 3-6 min
         
         target_minute = (current_minute + required_gap) % 1440
         
-        # ابحث عن أقرب إشارة لـ target_minute (±5 دقائق)
+        # Find nearest signal to target_minute (within ±5 minutes)
         best_idx = None
         best_diff = 999
         for i, s in enumerate(by_time):
@@ -275,7 +286,7 @@ def build_schedule(eligible_signals: list, start_minute: int, n_signals: int):
                 best_idx = i
         
         if best_idx is None:
-            # ابحث عن أي إشارة بعد target_minute (±30 دقيقة)
+            # Find any signal after target_minute (within 60 min)
             for i, s in enumerate(by_time):
                 if i in used_indices: continue
                 if s["asset"] == last_asset: continue
@@ -299,33 +310,34 @@ def build_schedule(eligible_signals: list, start_minute: int, n_signals: int):
 
 
 def utc_to_algeria(utc_minute: int):
-    """يحوّل دقيقة UTC إلى توقيت الجزائر (UTC+1)."""
+    """Convert UTC minute-of-day to Algeria time (UTC+1)."""
     alg_minute = (utc_minute + 60) % 1440
     h, m = divmod(alg_minute, 60)
-    if 5 <= h < 12: period = "صباحاً"
-    elif 12 <= h < 17: period = "ظهراً"
-    elif 17 <= h < 21: period = "مساءً"
-    else: period = "ليلاً"
+    if 5 <= h < 12: period = "morning"
+    elif 12 <= h < 17: period = "noon"
+    elif 17 <= h < 21: period = "evening"
+    else: period = "night"
     return f"{h:02d}:{m:02d}", period
 
 
 def print_banner():
     print(f"{Colors.CYAN}{Colors.BOLD}{'='*70}{Colors.RESET}")
-    print(f"{Colors.BOLD}  💎 QX ZERO — Signal Generator (Advanced){Colors.RESET}")
-    print(f"{Colors.BOLD}  بوت إشارات Binary Options — يعمل على بياناتك المحلية{Colors.RESET}")
+    print(f"{Colors.BOLD}  QX ZERO - Signal Generator (Advanced){Colors.RESET}")
+    print(f"{Colors.BOLD}  Binary Options Signal Bot - works on your local candle data{Colors.RESET}")
     print(f"{Colors.CYAN}{'='*70}{Colors.RESET}")
-    print(f"{Colors.YELLOW}  ✦ ميزات البوت:{Colors.RESET}")
-    print(f"     • يجد تلقائياً كل ملفات الشموع في المجلد المحدد")
-    print(f"     • يحلل كل عملة على 1440 دقيقة من اليوم")
-    print(f"     • يحسب L1, Combined, MTG use, MTG success")
-    print(f"     • يطبّق فلترة عميقة (مستوحاة من تحليل بوت المنافس)")
-    print(f"     • يبني جدول إشارات بفجوات 3-10 دقائق (تشويش)")
-    print(f"     • يحسب التوقيت المحلي (UTC+1 للجزائر)")
+    print(f"{Colors.YELLOW}  Bot features:{Colors.RESET}")
+    print(f"     - Auto-discovers all candle files in the specified folder")
+    print(f"     - Filters files by days count (100d, 30d, or any)")
+    print(f"     - Analyzes each asset on 1440 minutes of the day")
+    print(f"     - Computes L1, Combined, MTG use, MTG success")
+    print(f"     - Applies deep filters (inspired by competitor bot analysis)")
+    print(f"     - Builds schedule with 3-10 min variable gaps (obfuscation)")
+    print(f"     - Shows Algerian local time (UTC+1)")
     print()
 
 
 def input_with_default(prompt: str, default: str = ""):
-    """يقرأ إدخال المستخدم مع قيمة افتراضية."""
+    """Read user input with default value."""
     s = input(f"{Colors.YELLOW}{prompt}{Colors.RESET} [{default}]: ").strip()
     return s if s else default
 
@@ -333,16 +345,14 @@ def input_with_default(prompt: str, default: str = ""):
 def main():
     print_banner()
     
-    # ===== 1. مسار مجلد الشموع =====
+    # ===== 1. Candles folder path =====
     default_dir = "candles_data"
     candles_dir_str = input_with_default(
-        "📂 أدخل مسار مجلد الشموع (أو اضغط Enter للمجلد الافتراضي 'candles_data')",
+        "Enter candles folder path (or press Enter for default 'candles_data')",
         default_dir
     )
-    # إذا المسار نسبي، حوّله لمطلق بالنسبة لمجلد السكريبت
     candles_dir = Path(candles_dir_str)
     if not candles_dir.is_absolute():
-        # ابحث أيضاً في مجلد السكريبت
         script_dir = Path(__file__).parent if "__file__" in globals() else Path.cwd()
         candidates = [candles_dir, script_dir / candles_dir, script_dir.parent / candles_dir]
         for c in candidates:
@@ -350,21 +360,33 @@ def main():
                 candles_dir = c
                 break
     
-    print(f"\n{Colors.CYAN}🔍 البحث في: {candles_dir}{Colors.RESET}")
-    by_asset = discover_candle_files(candles_dir)
+    print(f"\n{Colors.CYAN}Searching in: {candles_dir}{Colors.RESET}")
+    
+    # ===== 2. Days filter =====
+    days_str = input_with_default(
+        "Enter days filter (100, 30, or any number - only files matching this exact day count will be loaded)",
+        "100"
+    )
+    try:
+        days_filter = int(days_str)
+    except ValueError:
+        print(f"{Colors.RED}Invalid number. Using default 100.{Colors.RESET}")
+        days_filter = 100
+    
+    by_asset = discover_candle_files(candles_dir, days_filter=days_filter)
     if not by_asset:
-        print(f"{Colors.RED}✗ لم يتم العثور على ملفات شموع في: {candles_dir}{Colors.RESET}")
-        print(f"  أنماط متوقعة: <asset>_1m_<days>d_<hash>.json")
+        print(f"{Colors.RED}No candle files matching {days_filter}d pattern in: {candles_dir}{Colors.RESET}")
+        print(f"  Expected pattern: <asset>_1m_{days_filter}d_<hash>.json")
         return
     
-    print(f"{Colors.GREEN}✓ وجدت {len(by_asset)} عملة:{Colors.RESET}")
+    print(f"{Colors.GREEN}Found {len(by_asset)} assets with {days_filter}d data:{Colors.RESET}")
     for asset, (days, f) in sorted(by_asset.items()):
-        print(f"  {asset} ({days} يوم) → {f.name}")
+        print(f"  {asset} ({days} days) -> {f.name}")
     print()
     
-    # ===== 2. ساعة البدء =====
+    # ===== 3. Start time =====
     start_time_str = input_with_default(
-        "⏰ أدخل ساعة البدء (HH:MM بصيغة 24 ساعة UTC، مثل 20:00)",
+        "Enter start time HH:MM (24h UTC, e.g. 20:00)",
         "00:00"
     )
     try:
@@ -373,67 +395,67 @@ def main():
         if not (0 <= start_minute < 1440):
             raise ValueError
     except (ValueError, IndexError):
-        print(f"{Colors.RED}✗ صيغة غير صحيحة. استخدم HH:MM (مثل 20:00){Colors.RESET}")
+        print(f"{Colors.RED}Invalid format. Use HH:MM (e.g. 20:00){Colors.RESET}")
         return
     
-    print(f"\n{Colors.CYAN}⏰ ساعة البدء المطلوبة: {h:02d}:{m:02d} UTC{Colors.RESET}")
-    print(f"   (الجزائر UTC+1: {(h+1)%24:02d}:{m:02d})")
-    print(f"   البوت سيبدأ البحث من هذه الساعة تقريباً (±5 دقائق){Colors.RESET}")
+    print(f"\n{Colors.CYAN}Requested start: {h:02d}:{m:02d} UTC{Colors.RESET}")
+    print(f"   (Algeria UTC+1: {(h+1)%24:02d}:{m:02d})")
+    print(f"   Bot will start near this time (within +-5 minutes){Colors.RESET}")
     print()
     
-    # ===== 3. عدد الإشارات =====
+    # ===== 4. Number of signals =====
     n_str = input_with_default(
-        "🎯 كم عدد الإشارات التي تريدها؟ (20-40 موصى بها)",
+        "How many signals do you want? (20-40 recommended)",
         "20"
     )
     try:
         n_signals = int(n_str)
         if n_signals < 1 or n_signals > 200:
-            print(f"{Colors.RED}✗ العدد يجب أن يكون بين 1 و 200{Colors.RESET}")
+            print(f"{Colors.RED}Number must be between 1 and 200{Colors.RESET}")
             return
     except ValueError:
-        print(f"{Colors.RED}✗ أدخل رقماً صحيحاً{Colors.RESET}")
+        print(f"{Colors.RED}Please enter a valid integer{Colors.RESET}")
         return
     
-    print(f"\n{Colors.CYAN}🎯 عدد الإشارات المطلوب: {n_signals}{Colors.RESET}")
+    print(f"\n{Colors.CYAN}Requested signals: {n_signals}{Colors.RESET}")
     print()
     
-    # ===== 4. تحليل كل عملة =====
-    print(f"{Colors.BOLD}🔍 مرحلة التحليل:{Colors.RESET}")
+    # ===== 5. Analyze each asset =====
+    print(f"{Colors.BOLD}Analysis phase:{Colors.RESET}")
     all_eligible = []
     for asset, (days, f) in by_asset.items():
-        print(f"  [{asset}] تحليل {days} يوم...", end=" ", flush=True)
+        print(f"  [{asset}] analyzing {days} days...", end=" ", flush=True)
         candles = load_candles(f)
         if len(candles) < MIN_SAMPLES:
-            print(f"{Colors.RED}بيانات غير كافية ({len(candles)}){Colors.RESET}")
+            print(f"{Colors.RED}insufficient data ({len(candles)}){Colors.RESET}")
             continue
         stats = analyze_minute_patterns(asset, candles)
         filtered = filter_signals(stats)
         all_eligible.extend(filtered)
-        print(f"{Colors.GREEN}{len(filtered)} دقيقة صالحة{Colors.RESET}")
+        print(f"{Colors.GREEN}{len(filtered)} valid minutes{Colors.RESET}")
     
-    print(f"\n{Colors.GREEN}✓ إجمالي الدقائق الصالحة: {len(all_eligible)}{Colors.RESET}")
+    print(f"\n{Colors.GREEN}Total valid minutes: {len(all_eligible)}{Colors.RESET}")
     if not all_eligible:
-        print(f"{Colors.RED}✗ لا توجد إشارات صالحة. جرّب بيانات أطول (100 يوم).{Colors.RESET}")
+        print(f"{Colors.RED}No valid signals found. Try longer data (100 days).{Colors.RESET}")
         return
     
-    # ===== 5. بناء الجدول =====
-    print(f"\n{Colors.BOLD}📋 مرحلة بناء الجدول:{Colors.RESET}")
-    random.seed(int(time.time()))  # عشوائية حقيقية كل تشغيل
+    # ===== 6. Build schedule =====
+    print(f"\n{Colors.BOLD}Schedule building phase:{Colors.RESET}")
+    random.seed(int(time.time()))  # true randomness each run
     schedule = build_schedule(all_eligible, start_minute, n_signals)
     
     if not schedule:
-        print(f"{Colors.RED}✗ لم يتم بناء جدول. جرّب ساعة بدء مختلفة.{Colors.RESET}")
+        print(f"{Colors.RED}Failed to build schedule. Try a different start time.{Colors.RESET}")
         return
     
-    # ===== 6. عرض النتائج =====
+    # ===== 7. Display results =====
     print(f"\n{Colors.CYAN}{Colors.BOLD}{'='*100}{Colors.RESET}")
-    print(f"{Colors.BOLD}  💎 QX ZERO — قائمة الإشارات{Colors.RESET}")
-    print(f"{Colors.BOLD}  ⏰ تبدأ من {h:02d}:{m:02d} UTC (تقريباً) → {(h+1)%24:02d}:{m:02d} بتوقيت الجزائر{Colors.RESET}")
-    print(f"{Colors.BOLD}  🎯 عدد الإشارات: {len(schedule)}{Colors.RESET}")
+    print(f"{Colors.BOLD}  QX ZERO - Signal Schedule{Colors.RESET}")
+    print(f"{Colors.BOLD}  Starts near {h:02d}:{m:02d} UTC -> {(h+1)%24:02d}:{m:02d} Algeria{Colors.RESET}")
+    print(f"{Colors.BOLD}  Number of signals: {len(schedule)}{Colors.RESET}")
     print(f"{Colors.CYAN}{'='*100}{Colors.RESET}")
     
-    print(f"\n{'#':<3}{'UTC':<7}{'الجزائر':<14}{'العملة':<14}{'الاتجاه':<10}{'L1%':<7}{'Comb%':<8}{'MTG Use':<9}{'الفجوة'}")
+    print(f"\n{'#':<3}{'UTC':<7}{'Algeria':<14}{'Asset':<14}{'Direction':<10}{'L1%':<7}{'Comb%':<8}{'MTG Use':<9}{'Gap'}")
     print('-' * 100)
     
     prev_minute = None
@@ -442,15 +464,15 @@ def main():
         alg_time, period = utc_to_algeria(s["minute_of_day"])
         
         asset_short = s["asset"].replace("_otc", "-OTC")
-        arrow = "🟢 CALL" if s["direction"] == "CALL" else "🔴 PUT"
+        arrow = "BUY " if s["direction"] == "CALL" else "SELL"
         
         if prev_minute is not None:
             gap = (s["minute_of_day"] - prev_minute) % 1440
-            gap_str = f"{gap} دقيقة"
+            gap_str = f"{gap} min"
         else:
-            gap_str = "(البداية)"
+            gap_str = "(start)"
         
-        # لون حسب القوة
+        # Color by strength
         if s["combined_win_rate"] >= 0.87:
             l1_color = Colors.GREEN
         elif s["combined_win_rate"] >= 0.83:
@@ -458,14 +480,14 @@ def main():
         else:
             l1_color = Colors.RESET
         
-        print(f"{i:<3}{utc_h:02d}:{utc_m:02d}   {alg_time} {period:<7}{asset_short:<14}{arrow:<10}"
+        print(f"{i:<3}{utc_h:02d}:{utc_m:02d}   {alg_time} {period:<8}{asset_short:<14}{arrow:<10}"
               f"{l1_color}{s['l1_win_rate']*100:>4.0f}%   {s['combined_win_rate']*100:>4.0f}%    {s['mtg_use_rate']*100:>4.0f}%      {gap_str}{Colors.RESET}")
         
         prev_minute = s["minute_of_day"]
     
-    # ===== 7. الإحصائيات =====
+    # ===== 8. Statistics =====
     print(f"\n{Colors.CYAN}{Colors.BOLD}{'='*100}{Colors.RESET}")
-    print(f"{Colors.BOLD}  📊 الإحصائيات{Colors.RESET}")
+    print(f"{Colors.BOLD}  Statistics{Colors.RESET}")
     print(f"{Colors.CYAN}{'='*100}{Colors.RESET}")
     
     avg_l1 = sum(s["l1_win_rate"] for s in schedule) / len(schedule)
@@ -474,26 +496,27 @@ def main():
     avg_mtg_succ = sum(s["mtg_success_rate"] for s in schedule) / len(schedule)
     unique_assets = len(set(s["asset"] for s in schedule))
     
-    print(f"  • إجمالي الإشارات: {Colors.BOLD}{len(schedule)}{Colors.RESET}")
-    print(f"  • متوسط L1 (بدون MTG): {Colors.BOLD}{avg_l1*100:.1f}%{Colors.RESET}")
-    print(f"  • متوسط Combined (مع MTG): {Colors.GREEN}{avg_comb*100:.1f}%{Colors.RESET}")
-    print(f"  • متوسط MTG use: {avg_mtg_use*100:.1f}% (نادر)")
-    print(f"  • متوسط MTG success: {avg_mtg_succ*100:.1f}%")
-    print(f"  • عملات مختلفة: {unique_assets}")
+    print(f"  - Total signals: {Colors.BOLD}{len(schedule)}{Colors.RESET}")
+    print(f"  - Avg L1 (no MTG): {Colors.BOLD}{avg_l1*100:.1f}%{Colors.RESET}")
+    print(f"  - Avg Combined (with MTG): {Colors.GREEN}{avg_comb*100:.1f}%{Colors.RESET}")
+    print(f"  - Avg MTG use: {avg_mtg_use*100:.1f}% (rare)")
+    print(f"  - Avg MTG success: {avg_mtg_succ*100:.1f}%")
+    print(f"  - Unique assets: {unique_assets}")
     
-    print(f"\n{Colors.BOLD}  🎯 التوقع:{Colors.RESET}")
+    print(f"\n{Colors.BOLD}  Expected outcome:{Colors.RESET}")
     expected_wins = avg_comb * len(schedule)
     expected_losses = len(schedule) - expected_wins
-    print(f"  • رابحة: ~{Colors.GREEN}{expected_wins:.0f}{Colors.RESET} من {len(schedule)}")
-    print(f"  • خاسرة: ~{Colors.RED}{expected_losses:.0f}{Colors.RESET} من {len(schedule)}")
-    print(f"  • نسبة النجاح المتوقعة: {Colors.BOLD}{avg_comb*100:.1f}%{Colors.RESET}")
+    print(f"  - Wins: ~{Colors.GREEN}{expected_wins:.0f}{Colors.RESET} of {len(schedule)}")
+    print(f"  - Losses: ~{Colors.RED}{expected_losses:.0f}{Colors.RESET} of {len(schedule)}")
+    print(f"  - Expected win rate: {Colors.BOLD}{avg_comb*100:.1f}%{Colors.RESET}")
     
-    # ===== 8. حفظ القائمة =====
+    # ===== 9. Save schedule to JSON =====
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     output_file = Path(f"signals_{timestamp}.json")
     output_data = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "candles_dir": str(candles_dir),
+        "days_filter": days_filter,
         "start_time_utc": f"{h:02d}:{m:02d}",
         "n_signals_requested": n_signals,
         "n_signals_generated": len(schedule),
@@ -522,23 +545,23 @@ def main():
     }
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2, ensure_ascii=False)
-    print(f"\n{Colors.GREEN}✓ تم حفظ القائمة في: {output_file}{Colors.RESET}")
+    print(f"\n{Colors.GREEN}Schedule saved to: {output_file}{Colors.RESET}")
     
-    # ===== 9. قواعد التشغيل =====
-    print(f"\n{Colors.YELLOW}{Colors.BOLD}⚠️ قواعد التشغيل:{Colors.RESET}")
-    print(f"  • MTG = مرة واحدة فقط (لا MTG2)")
-    print(f"  • إذا فشل L1 → MTG في الشمعة التالية مباشرة")
-    print(f"  • بعد MTG، انتظر 10 دقائق قبل الصفقة التالية")
-    print(f"  • الفجوة العادية 3-6 دقائق (متغيرة للتشويش)")
-    print(f"  • لا تكرر نفس العملة في إشارتين متتاليتين")
+    # ===== 10. Trading rules =====
+    print(f"\n{Colors.YELLOW}{Colors.BOLD}Trading rules:{Colors.RESET}")
+    print(f"  - MTG = ONE retry only (no MTG2)")
+    print(f"  - If L1 loses -> MTG on the very next candle")
+    print(f"  - After MTG, wait 10 minutes before next signal")
+    print(f"  - Normal gap is 3-6 minutes (randomized for obfuscation)")
+    print(f"  - No same asset in consecutive signals")
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}تم الإيقاف.{Colors.RESET}")
+        print(f"\n{Colors.YELLOW}Stopped.{Colors.RESET}")
     except Exception as e:
-        print(f"\n{Colors.RED}خطأ: {e}{Colors.RESET}")
+        print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
         import traceback
         traceback.print_exc()
