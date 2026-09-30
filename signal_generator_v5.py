@@ -539,153 +539,234 @@ def main():
     
     print(f"\n{Colors.GREEN}Total validated patterns: {len(all_patterns)}{Colors.RESET}")
     if not all_patterns:
-        print(f"{Colors.RED}No patterns passed validation. Try longer data (100 days).{Colors.RESET}")
+        print(f"{Colors.RED}No patterns passed validation.{Colors.RESET}")
         return
     
-    # Sort by test combined win rate (out-of-sample)
+    # Sort by test combined win rate
     all_patterns.sort(key=lambda x: (x["test_combined_win_rate"], x["train_combined_win_rate"]), reverse=True)
     
-    # ===== Display =====
-    print(f"\n{Colors.CYAN}{Colors.BOLD}{'='*120}{Colors.RESET}")
-    print(f"{Colors.BOLD}  QX ZERO - Pattern-Based Signals (v5){Colors.RESET}")
-    print(f"{Colors.BOLD}  Total patterns: {len(all_patterns)}{Colors.RESET}")
-    print(f"{Colors.CYAN}{'='*120}{Colors.RESET}")
+    # ===== 3. Ask how many signals and start time =====
+    n_str = input_with_default(
+        "How many signals do you want? (20-100)",
+        "20"
+    )
+    try:
+        n_signals = int(n_str)
+        if n_signals < 1 or n_signals > 500:
+            n_signals = 20
+    except ValueError:
+        n_signals = 20
     
-    # Show top 100 patterns (or all if less) with appearance times
-    n_show = min(100, len(all_patterns))
-    print(f"\n{Colors.BOLD}Top {n_show} Patterns (by test combined win rate):{Colors.RESET}")
-    print(f"\n{'#':<4}{'Asset':<14}{'Dir':<6}{'Pattern':<48}{'Test%':<8}{'Peak':<7}{'Fires':<7}{'Top historical times (UTC)'}")
-    print('-' * 140)
-    for i, p in enumerate(all_patterns[:n_show], 1):
-        test_color = Colors.GREEN if p["test_combined_win_rate"] >= 0.80 else Colors.YELLOW if p["test_combined_win_rate"] >= 0.70 else Colors.RED
-        peak = f"{p['peak_hour_utc']:02d}:00"
-        n_fires = p.get("total_firings", 0)
-        # Top 3 historical times
-        top_t = p.get("top_times_utc", [])[:3]
-        top_str = ", ".join(f"{t}({c})" for t, c in top_t) if top_t else "N/A"
-        print(f"{i:<4}{p['asset']:<14}{p['direction']:<6}{p['pattern_label']:<48}"
-              f"{test_color}{p['test_combined_win_rate']*100:>5.1f}%{Colors.RESET}  "
-              f"{peak:<7}{n_fires:<7}{top_str}")
+    start_str = input_with_default(
+        "Enter start time HH:MM (24h UTC, e.g. 02:00)",
+        "00:00"
+    )
+    try:
+        sh, sm = map(int, start_str.split(":"))
+        start_minute = sh * 60 + sm
+    except (ValueError, IndexError):
+        start_minute = 0
     
-    # ===== Detailed view for TOP 30 patterns =====
-    print(f"\n{Colors.BOLD}Detailed view — Top 30 patterns with all appearance times:{Colors.RESET}")
+    print(f"\n{Colors.CYAN}Building schedule: {n_signals} signals, starting near {sh:02d}:{sm:02d} UTC{Colors.RESET}")
+    print(f"  Gaps: 3-6 minutes (strict, never more){Colors.RESET}")
     print()
-    for i, p in enumerate(all_patterns[:30], 1):
-        test_color = Colors.GREEN if p["test_combined_win_rate"] >= 0.80 else Colors.YELLOW
-        print(f"{Colors.BOLD}#{i} {p['asset']} {p['direction']} — {p['pattern_label']}{Colors.RESET}")
-        print(f"   Test Combined: {test_color}{p['test_combined_win_rate']*100:.1f}%{Colors.RESET} | Train L1: {p['train_l1_win_rate']*100:.1f}% | Samples: {p.get('total_firings', 0)}")
-        print(f"   Peak hour (UTC): {p.get('peak_hour_utc', 0):02d}:00 | Avg hour: {p.get('avg_hour_utc', 0):.1f}")
-        # Hour distribution (top 5 hours)
-        hour_dist = p.get("hour_distribution", {})
-        if hour_dist:
-            sorted_hours = sorted(hour_dist.items(), key=lambda x: x[1], reverse=True)[:5]
-            hours_str = ", ".join(f"{h:02d}:00({c})" for h, c in sorted_hours)
-            print(f"   Top active hours: {hours_str}")
-        # All historical times (first 20)
-        all_t = p.get("all_times_utc", [])[:20]
-        if all_t:
-            print(f"   Historical times (UTC): {', '.join(all_t)}")
-        print()
     
-    # ===== Statistics =====
-    print(f"\n{Colors.CYAN}{Colors.BOLD}{'='*120}{Colors.RESET}")
+    # ===== 4. Build schedule: match patterns to time slots =====
+    # For each pattern, build a set of minutes-of-day when it historically appears
+    pattern_minutes = {}  # pattern_index -> set of minutes_of_day
+    for i, p in enumerate(all_patterns):
+        minutes = set()
+        for t in p.get("all_times_utc", []):
+            try:
+                h, m = map(int, t.split(":"))
+                minutes.add(h * 60 + m)
+            except (ValueError, IndexError):
+                pass
+        # Also add peak hour minutes (every minute in the peak hour)
+        peak = p.get("peak_hour_utc", 0)
+        for mm in range(60):
+            minutes.add(peak * 60 + mm)
+        # Also add top active hours
+        for h, count in p.get("hour_distribution", {}).items():
+            if count >= 3:  # hour with >= 3 appearances
+                for mm in range(0, 60, 5):  # every 5 min in that hour
+                    minutes.add(int(h) * 60 + mm)
+        pattern_minutes[i] = minutes
+    
+    # Build schedule with 3-6 min gaps
+    random.seed(int(time.time() * 1000))
+    best_schedule = []
+    
+    for pass_num in range(5):
+        schedule = []
+        used_pattern_indices = set()
+        used_assets = set()  # track assets used in last 2 signals
+        last_placed_minute = None
+        last_asset = None
+        search_minute = start_minute
+        consecutive_fails = 0
+        
+        while len(schedule) < n_signals and consecutive_fails < 500:
+            # Determine required gap (3-6 min)
+            required_gap = random.choice([3, 4, 5, 6])
+            
+            # Reference: last placed signal, or start_minute for first
+            ref = last_placed_minute if last_placed_minute is not None else search_minute
+            
+            # Find best pattern that:
+            # 1) Has a historical appearance within 3-6 min of ref
+            # 2) Uses a different asset than last signal
+            # 3) Has highest test combined win rate
+            best_idx = None
+            best_score = -1
+            best_gap = 0
+            
+            for i, p in enumerate(all_patterns):
+                if i in used_pattern_indices:
+                    continue
+                if p["asset"] == last_asset:
+                    continue
+                # Check if this pattern has a minute within 3-6 min of ref
+                minutes = pattern_minutes[i]
+                for target_gap in [3, 4, 5, 6]:
+                    target_min = (ref + target_gap) % 1440
+                    if target_min in minutes:
+                        # Score = test combined win rate (higher = better)
+                        score = p["test_combined_win_rate"]
+                        if target_gap == required_gap:
+                            score += 0.05  # bonus for matching preferred gap
+                        if score > best_score:
+                            best_score = score
+                            best_idx = i
+                            best_gap = target_gap
+                        break  # found a valid gap for this pattern
+            
+            if best_idx is None:
+                # No pattern within 3-6 min, advance search
+                search_minute = (search_minute + 1) % 1440
+                if last_placed_minute is not None:
+                    last_placed_minute = (last_placed_minute + 1) % 1440
+                consecutive_fails += 1
+                continue
+            
+            # Place the signal
+            p = all_patterns[best_idx]
+            actual_gap = best_gap if last_placed_minute is not None else 0
+            
+            # Find the exact minute for this signal (closest historical time to ref + best_gap)
+            target_min = (ref + best_gap) % 1440
+            minutes = pattern_minutes[best_idx]
+            # Find closest minute in pattern's historical times to target_min
+            closest_min = min(minutes, key=lambda m: abs((m - target_min) % 1440 - 1440 if (m - target_min) % 1440 > 720 else (m - target_min) % 1440))
+            # Actually use target_min (the scheduled time, not the historical time)
+            signal_minute = target_min
+            
+            schedule.append({
+                **p,
+                "scheduled_minute": signal_minute,
+                "scheduled_time_utc": f"{signal_minute // 60:02d}:{signal_minute % 60:02d}",
+                "gap_from_prev": actual_gap,
+            })
+            used_pattern_indices.add(best_idx)
+            last_placed_minute = signal_minute
+            last_asset = p["asset"]
+            consecutive_fails = 0
+        
+        if len(schedule) > len(best_schedule):
+            best_schedule = schedule
+        if len(best_schedule) >= n_signals:
+            break
+    
+    schedule = best_schedule
+    print(f"Built schedule with {len(schedule)} signals")
+    
+    if not schedule:
+        print(f"{Colors.RED}Failed to build schedule.{Colors.RESET}")
+        return
+    
+    # ===== Display schedule =====
+    print()
+    print(f"{Colors.CYAN}{Colors.BOLD}{'='*120}{Colors.RESET}")
+    print(f"{Colors.BOLD}  QX ZERO - Signal Schedule (v5){Colors.RESET}")
+    print(f"{Colors.BOLD}  {len(schedule)} signals starting near {sh:02d}:{sm:02d} UTC ({(sh+1)%24:02d}:{sm:02d} Algeria){Colors.RESET}")
+    print(f"{Colors.BOLD}  Gaps: 3-6 minutes (strict){Colors.RESET}")
+    print(f"{Colors.CYAN}{'='*120}{Colors.RESET}")
+    print()
+    print(f"{'#':<3}{'UTC':<7}{'Algeria':<13}{'Asset':<14}{'Dir':<6}{'Pattern':<48}{'Test%':<7}{'Gap'}")
+    print('-' * 120)
+    for i, s in enumerate(schedule, 1):
+        utc_h, utc_m = divmod(s["scheduled_minute"], 60)
+        alg_h = (utc_h + 1) % 24
+        alg_time = f"{alg_h:02d}:{utc_m:02d}"
+        if 5 <= alg_h < 12: period = "AM"
+        elif 12 <= alg_h < 17: period = "Noon"
+        elif 17 <= alg_h < 21: period = "PM"
+        else: period = "Night"
+        asset_short = s["asset"].replace("_otc", "-OTC")
+        gap_str = f"{s['gap_from_prev']} min" if s["gap_from_prev"] > 0 else "start"
+        test_color = Colors.GREEN if s["test_combined_win_rate"] >= 0.85 else Colors.YELLOW if s["test_combined_win_rate"] >= 0.75 else Colors.RESET
+        print(f"{i:<3}{utc_h:02d}:{utc_m:02d}   {alg_time} {period:<6}{asset_short:<14}{s['direction']:<6}{s['pattern_label']:<48}{test_color}{s['test_combined_win_rate']*100:>5.1f}%{Colors.RESET}  {gap_str}")
+    
+    # Statistics
+    print()
+    print(f"{Colors.CYAN}{Colors.BOLD}{'='*120}{Colors.RESET}")
     print(f"{Colors.BOLD}  Statistics{Colors.RESET}")
     print(f"{Colors.CYAN}{'='*120}{Colors.RESET}")
-    
-    avg_train_l1 = sum(p["train_l1_win_rate"] for p in all_patterns) / len(all_patterns)
-    avg_train_comb = sum(p["train_combined_win_rate"] for p in all_patterns) / len(all_patterns)
-    avg_test_comb = sum(p["test_combined_win_rate"] for p in all_patterns) / len(all_patterns)
-    avg_mtg_use = sum(p["train_mtg_use_rate"] for p in all_patterns) / len(all_patterns)
-    unique_assets = len(set(p["asset"] for p in all_patterns))
-    
-    # By n_conditions
-    two_cond = [p for p in all_patterns if p["n_conditions"] == 2]
-    three_cond = [p for p in all_patterns if p["n_conditions"] == 3]
-    
-    print(f"  - Total patterns: {Colors.BOLD}{len(all_patterns)}{Colors.RESET}")
-    print(f"  - 2-condition patterns: {len(two_cond)}")
-    print(f"  - 3-condition patterns: {len(three_cond)}")
+    avg_test = sum(s["test_combined_win_rate"] for s in schedule) / len(schedule)
+    unique_assets = len(set(s["asset"] for s in schedule))
+    gaps = [s["gap_from_prev"] for s in schedule if s["gap_from_prev"] > 0]
+    print(f"  - Total signals: {Colors.BOLD}{len(schedule)}{Colors.RESET}")
+    print(f"  - Avg Test Combined: {Colors.GREEN}{avg_test*100:.1f}%{Colors.RESET}")
     print(f"  - Unique assets: {unique_assets}")
-    print(f"  - Avg Train L1: {Colors.BOLD}{avg_train_l1*100:.1f}%{Colors.RESET}")
-    print(f"  - Avg Train Combined: {Colors.GREEN}{avg_train_comb*100:.1f}%{Colors.RESET}")
-    print(f"  - Avg Test Combined (out-of-sample): {Colors.GREEN}{avg_test_comb*100:.1f}%{Colors.RESET}")
-    print(f"  - Avg MTG use: {avg_mtg_use*100:.1f}%")
+    if gaps:
+        print(f"  - Gaps: min={min(gaps)}, max={max(gaps)}, avg={sum(gaps)/len(gaps):.1f} min")
+        gap_dist = {}
+        for g in gaps:
+            gap_dist[g] = gap_dist.get(g, 0) + 1
+        print(f"  - Gap distribution: {dict(sorted(gap_dist.items()))}")
+        bad = [g for g in gaps if g > 6]
+        if bad:
+            print(f"  - {Colors.RED}{len(bad)} gaps > 6 min{Colors.RESET}")
+        else:
+            print(f"  - {Colors.GREEN}All gaps <= 6 min OK{Colors.RESET}")
+    expected_wins = avg_test * len(schedule)
+    print()
+    print(f"  {Colors.BOLD}Expected outcome:{Colors.RESET}")
+    print(f"  - Wins: ~{Colors.GREEN}{expected_wins:.0f}{Colors.RESET} of {len(schedule)}")
+    print(f"  - Losses: ~{Colors.RED}{len(schedule) - expected_wins:.0f}{Colors.RESET} of {len(schedule)}")
     
-    # Per-asset
-    by_asset_patterns = defaultdict(list)
-    for p in all_patterns:
-        by_asset_patterns[p["asset"]].append(p)
-    print(f"\n  Per-asset:")
-    for asset, patterns in sorted(by_asset_patterns.items(), key=lambda x: len(x[1]), reverse=True):
-        avg_comb = sum(p["test_combined_win_rate"] for p in patterns) / len(patterns)
-        print(f"    {asset:<15} {len(patterns)} patterns, avg test combined: {avg_comb*100:.1f}%")
-    
-    # Top 10 elite (test combined >= 80%)
-    elite = [p for p in all_patterns if p["test_combined_win_rate"] >= 0.80]
-    if elite:
-        print(f"\n  {Colors.GREEN}ELITE patterns (test combined >= 80%): {len(elite)}{Colors.RESET}")
-        for p in elite[:10]:
-            print(f"    {p['asset']:<13} {p['direction']:<5} {p['pattern_label']:<50} | "
-                  f"test {p['test_combined_win_rate']*100:.1f}% ({p['test_samples']} samples)")
-    
-    # ===== How to use =====
-    print(f"\n{Colors.YELLOW}{Colors.BOLD}How to use:{Colors.RESET}")
-    print(f"  - Watch the chart for the listed patterns")
+    print()
+    print(f"{Colors.YELLOW}{Colors.BOLD}Trading rules:{Colors.RESET}")
+    print(f"  - Watch chart for the listed pattern at the scheduled time")
     print(f"  - When ALL conditions match -> ENTER trade")
     print(f"  - BUY = predict next green, SELL = predict next red")
-    print(f"  - Trade duration: 1 minute")
     print(f"  - MTG = ONE retry only (no MTG2)")
-    print(f"  - After MTG, wait 10 minutes")
+    print(f"  - After MTG, next signal waits 6 min")
     
-    # ===== Save to JSON =====
+    # Save to JSON
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    output_file = Path(f"patterns_v5_{timestamp}.json")
+    output_file = Path(f"signals_v5_{timestamp}.json")
     output_data = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "version": "v5-pattern-based-100plus",
+        "version": "v5-scheduled",
         "candles_dir": str(candles_dir),
         "days_filter": days_filter,
-        "total_patterns": len(all_patterns),
-        "stats": {
-            "avg_train_l1_win_rate": avg_train_l1,
-            "avg_train_combined_win_rate": avg_train_comb,
-            "avg_test_combined_win_rate": avg_test_comb,
-            "avg_mtg_use_rate": avg_mtg_use,
-            "unique_assets": unique_assets,
-            "n_2_condition": len(two_cond),
-            "n_3_condition": len(three_cond),
-        },
-        "patterns": [
-            {
-                "rank": i,
-                "asset": p["asset"],
-                "direction": p["direction"],
-                "n_conditions": p["n_conditions"],
-                "pattern": p["pattern_label"],
-                "shape": p["shape"],
-                "context": p["context"],
-                "momentum": p["momentum"],
-                "train_l1_win_rate": p["train_l1_win_rate"],
-                "train_combined_win_rate": p["train_combined_win_rate"],
-                "test_l1_win_rate": p["test_l1_win_rate"],
-                "test_combined_win_rate": p["test_combined_win_rate"],
-                "train_samples": p["train_samples"],
-                "test_samples": p["test_samples"],
-                "p_value": p["p_value"],
-                # Historical appearance times
-                "total_firings": p.get("total_firings", 0),
-                "peak_hour_utc": p.get("peak_hour_utc", 0),
-                "avg_hour_utc": p.get("avg_hour_utc", 0),
-                "top_times_utc": p.get("top_times_utc", []),
-                "all_times_utc": p.get("all_times_utc", []),
-                "hour_distribution": p.get("hour_distribution", {}),
-            }
-            for i, p in enumerate(all_patterns, 1)
+        "start_time_utc": f"{sh:02d}:{sm:02d}",
+        "n_signals_requested": n_signals,
+        "n_signals_generated": len(schedule),
+        "stats": {"avg_test_combined_win_rate": avg_test, "unique_assets": unique_assets},
+        "signals": [
+            {"rank": i, "scheduled_time_utc": s["scheduled_time_utc"], "asset": s["asset"],
+             "direction": s["direction"], "pattern": s["pattern_label"],
+             "test_combined_win_rate": s["test_combined_win_rate"],
+             "gap_from_prev": s["gap_from_prev"]}
+            for i, s in enumerate(schedule, 1)
         ],
     }
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2, ensure_ascii=False)
-    print(f"\n{Colors.GREEN}Patterns saved to: {output_file}{Colors.RESET}")
+    print()
+    print(f"{Colors.GREEN}Schedule saved to: {output_file}{Colors.RESET}")
 
 
 if __name__ == "__main__":
