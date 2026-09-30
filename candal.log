@@ -1,0 +1,90 @@
+[22:50:08] Connecting to Quotex...
+[22:50:09] Login attempt 1/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (Hong Kong SAR China)If you think you're seeing this message by mistake, please contact[email protected]
+[22:50:13] Login attempt 2/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (Hong Kong SAR China)If you think you're seeing this message by mistake, please contact[email protected]
+[22:50:20] Login attempt 3/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (Hong Kong SAR China)If you think you're seeing this message by mistake, please contact[email protected]
+[22:58:39] Using proxy: http://178.92.72.162:8080
+[22:58:39] Connecting to Quotex...
+[22:58:40] Login attempt 1/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (Hong Kong SAR China)If you think you're seeing this message by mistake, please contact[email protected]
+[22:58:44] Login attempt 2/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (Hong Kong SAR China)If you think you're seeing this message by mistake, please contact[email protected]
+[22:58:51] Login attempt 3/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (Hong Kong SAR China)If you think you're seeing this message by mistake, please contact[email protected]
+[23:00:35] Using proxy: http://178.92.72.162:8080
+[23:00:35] Connecting to Quotex...
+[23:00:43] Login attempt 1/3 raised: HTTPSConnectionPool(host='qxbroker.com', port=443): Max retries exceeded with url: /en/sign-in/modal/ (Caused by ProtocolError('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer')))
+[23:00:54] Login attempt 2/3 raised: HTTPSConnectionPool(host='qxbroker.com', port=443): Max retries exceeded with url: /en/sign-in/modal/ (Caused by ProtocolError('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer')))
+[23:01:08] Login attempt 3/3 raised: HTTPSConnectionPool(host='qxbroker.com', port=443): Max retries exceeded with url: /en/sign-in/modal/ (Caused by ProtocolError('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer')))
+[23:01:53] Using proxy: http://159.223.167.188:10000
+[23:01:53] Connecting to Quotex...
+[23:03:09] Login attempt 1/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (United States)If you think you're seeing this message by mistake, please contact[email protected]
+[23:03:15] Login attempt 2/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (United States)If you think you're seeing this message by mistake, please contact[email protected]
+[23:03:25] Login attempt 3/3 failed: Service unavailable: Unfortunately, Quotex is currently not available in your region.                            (United States)If you think you're seeing this message by mistake, please contact[email protected]
+[23:03:32] Using proxy: http://122.246.112.107:7890
+[23:03:32] Connecting to Quotex...
+[23:03:34] Login attempt 1/3 failed: Websocket connection rejected.
+[23:03:37] Login attempt 2/3 failed: Websocket connection rejected.
+[23:03:43] Login attempt 3/3 failed: Websocket connection rejected.
+[23:05:33] Using proxy: http://154.201.127.46:8080
+[23:05:33] Connecting to Quotex...
+[23:05:41] Login attempt 1/3 raised: HTTPSConnectionPool(host='qxbroker.com', port=443): Max retries exceeded with url: /en/sign-in/modal/ (Caused by ProtocolError('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer')))
+[23:05:49] Login attempt 2/3 failed: Websocket connection rejected.
+[23:05:55] Login attempt 3/3 failed: Websocket connection rejected.
+[23:06:24] FATAL in main thread (top level): HTTPSConnectionPool(host='qxbroker.com', port=443): Max retries exceeded with url: /en/sign-in/modal/ (Caused by ProtocolError('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer')))
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/z/.venv/lib/python3.12/site-packages/requests/adapters.py", line 644, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/z/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 871, in urlopen
+    return self.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/z/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 871, in urlopen
+    return self.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/z/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 871, in urlopen
+    return self.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/z/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/home/z/.venv/lib/python3.12/site-packages/urllib3/util/retry.py", line 535, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='qxbroker.com', port=443): Max retries exceeded with url: /en/sign-in/modal/ (Caused by ProtocolError('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer')))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 26, in <module>
+  File "/home/z/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/home/z/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/z/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "<stdin>", line 11, in test_full_login
+  File "/home/z/my-project/CANDAL/BOT.py", line 728, in authenticate
+    status, msg = await login(self.username, self.password, self.user_data_dir)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/z/my-project/CANDAL/BOT.py", line 382, in __call__
+    data = {"_token": self.get_token(), "email": username,
+                      ^^^^^^^^^^^^^^^^
+  File "/home/z/my-project/CANDAL/BOT.py", line 317, in get_token
+    self.send_request("GET", f"{self.full_url}/sign-in/modal/")
+  File "/home/z/my-project/CANDAL/BOT.py", line 282, in send_request
+    self.response = self.request(method, url, headers=merged_headers, **kwargs)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/z/.venv/lib/python3.12/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/z/.venv/lib/python3.12/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/z/.venv/lib/python3.12/site-packages/requests/adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='qxbroker.com', port=443): Max retries exceeded with url: /en/sign-in/modal/ (Caused by ProtocolError('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer')))
+

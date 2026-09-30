@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-09-30T01:33:14.319011+00:00",
+  "version": "v3-tight-gaps",
+  "candles_dir": ".",
+  "days_filter": 100,
+  "start_time_utc": "02:40",
+  "n_signals_requested": 30,
+  "n_signals_generated": 4,
+  "stats": {
+    "avg_l1_win_rate": 0.5925,
+    "avg_combined_win_rate": 0.8274999999999999,
+    "avg_mtg_use_rate": 0.4075,
+    "avg_mtg_success_rate": 0.5765461672473867,
+    "unique_assets": 4
+  },
+  "signals": [
+    {
+      "index": 1,
+      "utc_time": "02:43",
+      "algeria_time": "03:43",
+      "asset": "USDEGP_otc",
+      "direction": "PUT",
+      "l1_win_rate": 0.6,
+      "combined_win_rate": 0.82,
+      "mtg_use_rate": 0.4,
+      "mtg_success_rate": 0.55,
+      "samples": 100
+    },
+    {
+      "index": 2,
+      "utc_time": "02:49",
+      "algeria_time": "03:49",
+      "asset": "USDZAR_otc",
+      "direction": "PUT",
+      "l1_win_rate": 0.6,
+      "combined_win_rate": 0.83,
+      "mtg_use_rate": 0.4,
+      "mtg_success_rate": 0.575,
+      "samples": 100
+    },
+    {
+      "index": 3,
+      "utc_time": "02:54",
+      "algeria_time": "03:54",
+      "asset": "USDBDT_otc",
+      "direction": "PUT",
+      "l1_win_rate": 0.58,
+      "combined_win_rate": 0.82,
+      "mtg_use_rate": 0.42,
+      "mtg_success_rate": 0.5714285714285714,
+      "samples": 100
+    },
+    {
+      "index": 4,
+      "utc_time": "03:00",
+      "algeria_time": "04:00",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "l1_win_rate": 0.59,
+      "combined_win_rate": 0.84,
+      "mtg_use_rate": 0.41,
+      "mtg_success_rate": 0.6097560975609756,
+      "samples": 100
+    }
+  ]
+}

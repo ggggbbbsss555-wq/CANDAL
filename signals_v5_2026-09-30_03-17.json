@@ -1,0 +1,195 @@
+{
+  "generated_at": "2026-09-30T03:17:15.797297+00:00",
+  "version": "v5-scheduled",
+  "candles_dir": ".",
+  "days_filter": 100,
+  "start_time_utc": "02:00",
+  "n_signals_requested": 20,
+  "n_signals_generated": 20,
+  "stats": {
+    "avg_test_combined_win_rate": 0.8451271388890801,
+    "unique_assets": 9
+  },
+  "signals": [
+    {
+      "rank": 1,
+      "scheduled_time_utc": "02:05",
+      "asset": "USDZAR_otc",
+      "direction": "BUY",
+      "pattern": "hammer + 5reds",
+      "test_combined_win_rate": 0.9166666666666666,
+      "gap_from_prev": 0
+    },
+    {
+      "rank": 2,
+      "scheduled_time_utc": "02:10",
+      "asset": "USDINR_otc",
+      "direction": "BUY",
+      "pattern": "small_green + 4reds + range_contracting",
+      "test_combined_win_rate": 0.8636363636363636,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 3,
+      "scheduled_time_utc": "02:15",
+      "asset": "USDZAR_otc",
+      "direction": "BUY",
+      "pattern": "hammer + 5reds + body_shrinking",
+      "test_combined_win_rate": 0.8823529411764706,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 4,
+      "scheduled_time_utc": "02:19",
+      "asset": "USDINR_otc",
+      "direction": "BUY",
+      "pattern": "small_green + 3reds + range_contracting",
+      "test_combined_win_rate": 0.85,
+      "gap_from_prev": 4
+    },
+    {
+      "rank": 5,
+      "scheduled_time_utc": "02:23",
+      "asset": "USDIDR_otc",
+      "direction": "SELL",
+      "pattern": "big_red + 5greens + ema_below",
+      "test_combined_win_rate": 0.8,
+      "gap_from_prev": 4
+    },
+    {
+      "rank": 6,
+      "scheduled_time_utc": "02:28",
+      "asset": "USDPHP_otc",
+      "direction": "SELL",
+      "pattern": "small_red + 4greens + body_growing",
+      "test_combined_win_rate": 0.8235294117647058,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 7,
+      "scheduled_time_utc": "02:34",
+      "asset": "USDCOP_otc",
+      "direction": "BUY",
+      "pattern": "wick_rej_down + 4reds + body_shrinking",
+      "test_combined_win_rate": 0.8421052631578947,
+      "gap_from_prev": 6
+    },
+    {
+      "rank": 8,
+      "scheduled_time_utc": "02:39",
+      "asset": "USDZAR_otc",
+      "direction": "BUY",
+      "pattern": "hammer + 4reds + rsi_oversold",
+      "test_combined_win_rate": 0.8095238095238095,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 9,
+      "scheduled_time_utc": "02:42",
+      "asset": "USDCOP_otc",
+      "direction": "BUY",
+      "pattern": "hammer + 5reds + body_shrinking",
+      "test_combined_win_rate": 0.8125,
+      "gap_from_prev": 3
+    },
+    {
+      "rank": 10,
+      "scheduled_time_utc": "02:45",
+      "asset": "USDNGN_otc",
+      "direction": "BUY",
+      "pattern": "small_green + 5reds + ema_above",
+      "test_combined_win_rate": 0.85,
+      "gap_from_prev": 3
+    },
+    {
+      "rank": 11,
+      "scheduled_time_utc": "02:50",
+      "asset": "USDINR_otc",
+      "direction": "SELL",
+      "pattern": "small_red + 3greens + body_growing",
+      "test_combined_win_rate": 0.8387096774193549,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 12,
+      "scheduled_time_utc": "02:53",
+      "asset": "USDIDR_otc",
+      "direction": "BUY",
+      "pattern": "big_green + rsi_oversold",
+      "test_combined_win_rate": 0.9375,
+      "gap_from_prev": 3
+    },
+    {
+      "rank": 13,
+      "scheduled_time_utc": "02:58",
+      "asset": "USDARS_otc",
+      "direction": "BUY",
+      "pattern": "small_green + 3reds + body_growing",
+      "test_combined_win_rate": 0.825,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 14,
+      "scheduled_time_utc": "03:02",
+      "asset": "USDPKR_otc",
+      "direction": "SELL",
+      "pattern": "big_red + 5greens + ema_below",
+      "test_combined_win_rate": 0.8214285714285714,
+      "gap_from_prev": 4
+    },
+    {
+      "rank": 15,
+      "scheduled_time_utc": "03:05",
+      "asset": "USDMXN_otc",
+      "direction": "BUY",
+      "pattern": "big_green + 3reds + macd_cross_up",
+      "test_combined_win_rate": 0.8888888888888888,
+      "gap_from_prev": 3
+    },
+    {
+      "rank": 16,
+      "scheduled_time_utc": "03:10",
+      "asset": "USDINR_otc",
+      "direction": "BUY",
+      "pattern": "wick_rej_down + range_contracting",
+      "test_combined_win_rate": 0.8666666666666667,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 17,
+      "scheduled_time_utc": "03:15",
+      "asset": "USDMXN_otc",
+      "direction": "BUY",
+      "pattern": "big_green + 2reds + macd_cross_up",
+      "test_combined_win_rate": 0.8333333333333334,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 18,
+      "scheduled_time_utc": "03:20",
+      "asset": "USDINR_otc",
+      "direction": "BUY",
+      "pattern": "small_green + 2reds + range_contracting",
+      "test_combined_win_rate": 0.8356164383561644,
+      "gap_from_prev": 5
+    },
+    {
+      "rank": 19,
+      "scheduled_time_utc": "03:23",
+      "asset": "USDCOP_otc",
+      "direction": "SELL",
+      "pattern": "big_red + 2greens + rsi_overbought",
+      "test_combined_win_rate": 0.8,
+      "gap_from_prev": 3
+    },
+    {
+      "rank": 20,
+      "scheduled_time_utc": "03:27",
+      "asset": "USDINR_otc",
+      "direction": "BUY",
+      "pattern": "green_bar + 2reds + range_contracting",
+      "test_combined_win_rate": 0.8050847457627118,
+      "gap_from_prev": 4
+    }
+  ]
+}
