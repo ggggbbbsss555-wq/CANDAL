@@ -1,0 +1,809 @@
+{
+  "day": "Wednesday",
+  "n_local_signals": 100,
+  "timezone": "UTC+01:00 (Algeria)",
+  "n_trades": 100,
+  "gap_minutes": 4,
+  "signals": [
+    {
+      "signal_id": 1,
+      "local_time": "00:00",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "algeria_time": "00:00",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 2,
+      "local_time": "00:04",
+      "asset": "USDDZD_otc",
+      "direction": "CALL",
+      "algeria_time": "00:04",
+      "combined_wr": 0.82
+    },
+    {
+      "signal_id": 3,
+      "local_time": "00:08",
+      "asset": "USDMXN_otc",
+      "direction": "CALL",
+      "algeria_time": "00:08",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 4,
+      "local_time": "00:12",
+      "asset": "USDNGN_otc",
+      "direction": "CALL",
+      "algeria_time": "00:12",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 5,
+      "local_time": "00:16",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "algeria_time": "00:16",
+      "combined_wr": 0.75
+    },
+    {
+      "signal_id": 6,
+      "local_time": "00:20",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "algeria_time": "00:20",
+      "combined_wr": 0.8
+    },
+    {
+      "signal_id": 7,
+      "local_time": "00:24",
+      "asset": "USDINR_otc",
+      "direction": "PUT",
+      "algeria_time": "00:24",
+      "combined_wr": 0.78
+    },
+    {
+      "signal_id": 8,
+      "local_time": "00:28",
+      "asset": "USDZAR_otc",
+      "direction": "CALL",
+      "algeria_time": "00:28",
+      "combined_wr": 0.8
+    },
+    {
+      "signal_id": 9,
+      "local_time": "00:32",
+      "asset": "USDBDT_otc",
+      "direction": "CALL",
+      "algeria_time": "00:32",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 10,
+      "local_time": "00:36",
+      "asset": "USDPHP_otc",
+      "direction": "PUT",
+      "algeria_time": "00:36",
+      "combined_wr": 0.78
+    },
+    {
+      "signal_id": 11,
+      "local_time": "00:40",
+      "asset": "USDPKR_otc",
+      "direction": "PUT",
+      "algeria_time": "00:40",
+      "combined_wr": 0.84
+    },
+    {
+      "signal_id": 12,
+      "local_time": "00:44",
+      "asset": "USDCOP_otc",
+      "direction": "CALL",
+      "algeria_time": "00:44",
+      "combined_wr": 0.78
+    },
+    {
+      "signal_id": 13,
+      "local_time": "00:48",
+      "asset": "USDEGP_otc",
+      "direction": "CALL",
+      "algeria_time": "00:48",
+      "combined_wr": 0.67
+    },
+    {
+      "signal_id": 14,
+      "local_time": "00:52",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "algeria_time": "00:52",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 15,
+      "local_time": "00:56",
+      "asset": "USDDZD_otc",
+      "direction": "CALL",
+      "algeria_time": "00:56",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 16,
+      "local_time": "01:00",
+      "asset": "USDMXN_otc",
+      "direction": "PUT",
+      "algeria_time": "01:00",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 17,
+      "local_time": "01:04",
+      "asset": "USDNGN_otc",
+      "direction": "CALL",
+      "algeria_time": "01:04",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 18,
+      "local_time": "01:08",
+      "asset": "BRLUSD_otc",
+      "direction": "CALL",
+      "algeria_time": "01:08",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 19,
+      "local_time": "01:12",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "algeria_time": "01:12",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 20,
+      "local_time": "01:16",
+      "asset": "USDINR_otc",
+      "direction": "PUT",
+      "algeria_time": "01:16",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 21,
+      "local_time": "01:20",
+      "asset": "USDZAR_otc",
+      "direction": "PUT",
+      "algeria_time": "01:20",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 22,
+      "local_time": "01:24",
+      "asset": "USDBDT_otc",
+      "direction": "CALL",
+      "algeria_time": "01:24",
+      "combined_wr": 0.78
+    },
+    {
+      "signal_id": 23,
+      "local_time": "01:28",
+      "asset": "USDPHP_otc",
+      "direction": "CALL",
+      "algeria_time": "01:28",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 24,
+      "local_time": "01:32",
+      "asset": "USDPKR_otc",
+      "direction": "CALL",
+      "algeria_time": "01:32",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 25,
+      "local_time": "01:36",
+      "asset": "USDCOP_otc",
+      "direction": "PUT",
+      "algeria_time": "01:36",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 26,
+      "local_time": "01:40",
+      "asset": "USDEGP_otc",
+      "direction": "CALL",
+      "algeria_time": "01:40",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 27,
+      "local_time": "01:44",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "algeria_time": "01:44",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 28,
+      "local_time": "01:48",
+      "asset": "USDDZD_otc",
+      "direction": "PUT",
+      "algeria_time": "01:48",
+      "combined_wr": 0.75
+    },
+    {
+      "signal_id": 29,
+      "local_time": "01:52",
+      "asset": "USDMXN_otc",
+      "direction": "PUT",
+      "algeria_time": "01:52",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 30,
+      "local_time": "01:56",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "algeria_time": "01:56",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 31,
+      "local_time": "02:00",
+      "asset": "BRLUSD_otc",
+      "direction": "CALL",
+      "algeria_time": "02:00",
+      "combined_wr": 0.68
+    },
+    {
+      "signal_id": 32,
+      "local_time": "02:04",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "algeria_time": "02:04",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 33,
+      "local_time": "02:08",
+      "asset": "USDINR_otc",
+      "direction": "CALL",
+      "algeria_time": "02:08",
+      "combined_wr": 0.82
+    },
+    {
+      "signal_id": 34,
+      "local_time": "02:12",
+      "asset": "USDZAR_otc",
+      "direction": "CALL",
+      "algeria_time": "02:12",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 35,
+      "local_time": "02:16",
+      "asset": "USDBDT_otc",
+      "direction": "CALL",
+      "algeria_time": "02:16",
+      "combined_wr": 0.72
+    },
+    {
+      "signal_id": 36,
+      "local_time": "02:20",
+      "asset": "USDPHP_otc",
+      "direction": "CALL",
+      "algeria_time": "02:20",
+      "combined_wr": 0.76
+    },
+    {
+      "signal_id": 37,
+      "local_time": "02:24",
+      "asset": "USDPKR_otc",
+      "direction": "CALL",
+      "algeria_time": "02:24",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 38,
+      "local_time": "02:28",
+      "asset": "USDCOP_otc",
+      "direction": "PUT",
+      "algeria_time": "02:28",
+      "combined_wr": 0.78
+    },
+    {
+      "signal_id": 39,
+      "local_time": "02:32",
+      "asset": "USDEGP_otc",
+      "direction": "CALL",
+      "algeria_time": "02:32",
+      "combined_wr": 0.74
+    },
+    {
+      "signal_id": 40,
+      "local_time": "02:36",
+      "asset": "USDARS_otc",
+      "direction": "CALL",
+      "algeria_time": "02:36",
+      "combined_wr": 0.78
+    },
+    {
+      "signal_id": 41,
+      "local_time": "02:40",
+      "asset": "USDDZD_otc",
+      "direction": "CALL",
+      "algeria_time": "02:40",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 42,
+      "local_time": "02:44",
+      "asset": "USDMXN_otc",
+      "direction": "PUT",
+      "algeria_time": "02:44",
+      "combined_wr": 0.78
+    },
+    {
+      "signal_id": 43,
+      "local_time": "02:48",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "algeria_time": "02:48",
+      "combined_wr": 0.64
+    },
+    {
+      "signal_id": 44,
+      "local_time": "02:52",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "algeria_time": "02:52",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 45,
+      "local_time": "02:56",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "algeria_time": "02:56",
+      "combined_wr": 0.76
+    },
+    {
+      "signal_id": 46,
+      "local_time": "03:00",
+      "asset": "USDINR_otc",
+      "direction": "PUT",
+      "algeria_time": "03:00",
+      "combined_wr": 0.69
+    },
+    {
+      "signal_id": 47,
+      "local_time": "03:04",
+      "asset": "USDZAR_otc",
+      "direction": "PUT",
+      "algeria_time": "03:04",
+      "combined_wr": 0.72
+    },
+    {
+      "signal_id": 48,
+      "local_time": "03:08",
+      "asset": "USDBDT_otc",
+      "direction": "CALL",
+      "algeria_time": "03:08",
+      "combined_wr": 0.7
+    },
+    {
+      "signal_id": 49,
+      "local_time": "03:12",
+      "asset": "USDPHP_otc",
+      "direction": "CALL",
+      "algeria_time": "03:12",
+      "combined_wr": 0.72
+    },
+    {
+      "signal_id": 50,
+      "local_time": "03:16",
+      "asset": "USDPKR_otc",
+      "direction": "PUT",
+      "algeria_time": "03:16",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 51,
+      "local_time": "03:20",
+      "asset": "USDCOP_otc",
+      "direction": "PUT",
+      "algeria_time": "03:20",
+      "combined_wr": 0.7
+    },
+    {
+      "signal_id": 52,
+      "local_time": "03:24",
+      "asset": "USDEGP_otc",
+      "direction": "PUT",
+      "algeria_time": "03:24",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 53,
+      "local_time": "03:28",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "algeria_time": "03:28",
+      "combined_wr": 0.72
+    },
+    {
+      "signal_id": 54,
+      "local_time": "03:32",
+      "asset": "USDDZD_otc",
+      "direction": "CALL",
+      "algeria_time": "03:32",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 55,
+      "local_time": "03:36",
+      "asset": "USDMXN_otc",
+      "direction": "PUT",
+      "algeria_time": "03:36",
+      "combined_wr": 0.72
+    },
+    {
+      "signal_id": 56,
+      "local_time": "03:40",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "algeria_time": "03:40",
+      "combined_wr": 0.72
+    },
+    {
+      "signal_id": 57,
+      "local_time": "03:44",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "algeria_time": "03:44",
+      "combined_wr": 0.82
+    },
+    {
+      "signal_id": 58,
+      "local_time": "03:48",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "algeria_time": "03:48",
+      "combined_wr": 0.8
+    },
+    {
+      "signal_id": 59,
+      "local_time": "03:52",
+      "asset": "USDINR_otc",
+      "direction": "CALL",
+      "algeria_time": "03:52",
+      "combined_wr": 0.74
+    },
+    {
+      "signal_id": 60,
+      "local_time": "03:56",
+      "asset": "USDZAR_otc",
+      "direction": "CALL",
+      "algeria_time": "03:56",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 61,
+      "local_time": "04:00",
+      "asset": "USDBDT_otc",
+      "direction": "PUT",
+      "algeria_time": "04:00",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 62,
+      "local_time": "04:04",
+      "asset": "USDPHP_otc",
+      "direction": "CALL",
+      "algeria_time": "04:04",
+      "combined_wr": 0.75
+    },
+    {
+      "signal_id": 63,
+      "local_time": "04:08",
+      "asset": "USDPKR_otc",
+      "direction": "PUT",
+      "algeria_time": "04:08",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 64,
+      "local_time": "04:12",
+      "asset": "USDCOP_otc",
+      "direction": "PUT",
+      "algeria_time": "04:12",
+      "combined_wr": 0.69
+    },
+    {
+      "signal_id": 65,
+      "local_time": "04:16",
+      "asset": "USDEGP_otc",
+      "direction": "PUT",
+      "algeria_time": "04:16",
+      "combined_wr": 0.7
+    },
+    {
+      "signal_id": 66,
+      "local_time": "04:20",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "algeria_time": "04:20",
+      "combined_wr": 0.7
+    },
+    {
+      "signal_id": 67,
+      "local_time": "04:24",
+      "asset": "USDDZD_otc",
+      "direction": "CALL",
+      "algeria_time": "04:24",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 68,
+      "local_time": "04:28",
+      "asset": "USDMXN_otc",
+      "direction": "CALL",
+      "algeria_time": "04:28",
+      "combined_wr": 0.75
+    },
+    {
+      "signal_id": 69,
+      "local_time": "04:32",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "algeria_time": "04:32",
+      "combined_wr": 0.7
+    },
+    {
+      "signal_id": 70,
+      "local_time": "04:36",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "algeria_time": "04:36",
+      "combined_wr": 0.7
+    },
+    {
+      "signal_id": 71,
+      "local_time": "04:40",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "algeria_time": "04:40",
+      "combined_wr": 0.8
+    },
+    {
+      "signal_id": 72,
+      "local_time": "04:44",
+      "asset": "USDINR_otc",
+      "direction": "PUT",
+      "algeria_time": "04:44",
+      "combined_wr": 0.67
+    },
+    {
+      "signal_id": 73,
+      "local_time": "04:48",
+      "asset": "USDZAR_otc",
+      "direction": "CALL",
+      "algeria_time": "04:48",
+      "combined_wr": 0.65
+    },
+    {
+      "signal_id": 74,
+      "local_time": "04:52",
+      "asset": "USDBDT_otc",
+      "direction": "PUT",
+      "algeria_time": "04:52",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 75,
+      "local_time": "04:56",
+      "asset": "USDPHP_otc",
+      "direction": "CALL",
+      "algeria_time": "04:56",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 76,
+      "local_time": "05:00",
+      "asset": "USDPKR_otc",
+      "direction": "CALL",
+      "algeria_time": "05:00",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 77,
+      "local_time": "05:04",
+      "asset": "USDCOP_otc",
+      "direction": "PUT",
+      "algeria_time": "05:04",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 78,
+      "local_time": "05:08",
+      "asset": "USDEGP_otc",
+      "direction": "PUT",
+      "algeria_time": "05:08",
+      "combined_wr": 0.75
+    },
+    {
+      "signal_id": 79,
+      "local_time": "05:12",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "algeria_time": "05:12",
+      "combined_wr": 0.69
+    },
+    {
+      "signal_id": 80,
+      "local_time": "05:16",
+      "asset": "USDDZD_otc",
+      "direction": "CALL",
+      "algeria_time": "05:16",
+      "combined_wr": 0.7
+    },
+    {
+      "signal_id": 81,
+      "local_time": "05:20",
+      "asset": "USDMXN_otc",
+      "direction": "CALL",
+      "algeria_time": "05:20",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 82,
+      "local_time": "05:24",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "algeria_time": "05:24",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 83,
+      "local_time": "05:28",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "algeria_time": "05:28",
+      "combined_wr": 0.73
+    },
+    {
+      "signal_id": 84,
+      "local_time": "05:32",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "algeria_time": "05:32",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 85,
+      "local_time": "05:36",
+      "asset": "USDINR_otc",
+      "direction": "CALL",
+      "algeria_time": "05:36",
+      "combined_wr": 0.67
+    },
+    {
+      "signal_id": 86,
+      "local_time": "05:40",
+      "asset": "USDZAR_otc",
+      "direction": "CALL",
+      "algeria_time": "05:40",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 87,
+      "local_time": "05:44",
+      "asset": "USDBDT_otc",
+      "direction": "PUT",
+      "algeria_time": "05:44",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 88,
+      "local_time": "05:48",
+      "asset": "USDPHP_otc",
+      "direction": "PUT",
+      "algeria_time": "05:48",
+      "combined_wr": 0.66
+    },
+    {
+      "signal_id": 89,
+      "local_time": "05:52",
+      "asset": "USDPKR_otc",
+      "direction": "CALL",
+      "algeria_time": "05:52",
+      "combined_wr": 0.71
+    },
+    {
+      "signal_id": 90,
+      "local_time": "05:56",
+      "asset": "USDCOP_otc",
+      "direction": "PUT",
+      "algeria_time": "05:56",
+      "combined_wr": 0.69
+    },
+    {
+      "signal_id": 91,
+      "local_time": "06:00",
+      "asset": "USDEGP_otc",
+      "direction": "PUT",
+      "algeria_time": "06:00",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 92,
+      "local_time": "06:04",
+      "asset": "USDARS_otc",
+      "direction": "PUT",
+      "algeria_time": "06:04",
+      "combined_wr": 0.75
+    },
+    {
+      "signal_id": 93,
+      "local_time": "06:08",
+      "asset": "USDDZD_otc",
+      "direction": "PUT",
+      "algeria_time": "06:08",
+      "combined_wr": 0.77
+    },
+    {
+      "signal_id": 94,
+      "local_time": "06:12",
+      "asset": "USDMXN_otc",
+      "direction": "PUT",
+      "algeria_time": "06:12",
+      "combined_wr": 0.74
+    },
+    {
+      "signal_id": 95,
+      "local_time": "06:16",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "algeria_time": "06:16",
+      "combined_wr": 0.79
+    },
+    {
+      "signal_id": 96,
+      "local_time": "06:20",
+      "asset": "BRLUSD_otc",
+      "direction": "PUT",
+      "algeria_time": "06:20",
+      "combined_wr": 0.76
+    },
+    {
+      "signal_id": 97,
+      "local_time": "06:24",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "algeria_time": "06:24",
+      "combined_wr": 0.7
+    },
+    {
+      "signal_id": 98,
+      "local_time": "06:28",
+      "asset": "USDINR_otc",
+      "direction": "CALL",
+      "algeria_time": "06:28",
+      "combined_wr": 0.81
+    },
+    {
+      "signal_id": 99,
+      "local_time": "06:32",
+      "asset": "USDZAR_otc",
+      "direction": "CALL",
+      "algeria_time": "06:32",
+      "combined_wr": 0.75
+    },
+    {
+      "signal_id": 100,
+      "local_time": "06:36",
+      "asset": "USDBDT_otc",
+      "direction": "PUT",
+      "algeria_time": "06:36",
+      "combined_wr": 0.76
+    }
+  ]
+}
