@@ -1,0 +1,156 @@
+{
+  "generated_at": "2026-09-30T04:09:02.213870+00:00",
+  "version": "v7-target-90",
+  "candles_dir": ".",
+  "days_filter": 100,
+  "start_time_utc": "02:00",
+  "n_signals": 14,
+  "elite_assets": [
+    "USDBDT_otc",
+    "USDNGN_otc",
+    "USDIDR_otc"
+  ],
+  "filters": {
+    "l1": 0.58,
+    "combined": 0.8,
+    "mtg_success": 0.55
+  },
+  "stats": {
+    "avg_predicted_combined": 0.8962148962148963,
+    "unique_assets": 2
+  },
+  "backtest": {
+    "n_tested": 14,
+    "l1_wr": 0.7142857142857143,
+    "combined_wr": 0.8571428571428571,
+    "profit_per_100": 25.714285714285722
+  },
+  "signals": [
+    {
+      "rank": 1,
+      "time_utc": "02:04",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 3greens",
+      "predicted_l1": 0.5925925925925926,
+      "predicted_combined": 0.8518518518518519
+    },
+    {
+      "rank": 2,
+      "time_utc": "02:16",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 3greens",
+      "predicted_l1": 0.5925925925925926,
+      "predicted_combined": 0.8518518518518519
+    },
+    {
+      "rank": 3,
+      "time_utc": "02:26",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 3greens",
+      "predicted_l1": 0.5925925925925926,
+      "predicted_combined": 0.8518518518518519
+    },
+    {
+      "rank": 4,
+      "time_utc": "02:36",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 3greens",
+      "predicted_l1": 0.5925925925925926,
+      "predicted_combined": 0.8518518518518519
+    },
+    {
+      "rank": 5,
+      "time_utc": "02:46",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 3greens",
+      "predicted_l1": 0.5925925925925926,
+      "predicted_combined": 0.8518518518518519
+    },
+    {
+      "rank": 6,
+      "time_utc": "02:56",
+      "asset": "USDIDR_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 3greens",
+      "predicted_l1": 0.5925925925925926,
+      "predicted_combined": 0.8518518518518519
+    },
+    {
+      "rank": 7,
+      "time_utc": "03:07",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "pattern": "small_green + 5reds",
+      "predicted_l1": 0.6666666666666666,
+      "predicted_combined": 0.9333333333333333
+    },
+    {
+      "rank": 8,
+      "time_utc": "03:18",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "pattern": "small_green + 5reds",
+      "predicted_l1": 0.6666666666666666,
+      "predicted_combined": 0.9333333333333333
+    },
+    {
+      "rank": 9,
+      "time_utc": "03:28",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "pattern": "small_green + 5reds",
+      "predicted_l1": 0.6666666666666666,
+      "predicted_combined": 0.9333333333333333
+    },
+    {
+      "rank": 10,
+      "time_utc": "03:38",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "pattern": "small_green + 5reds",
+      "predicted_l1": 0.6666666666666666,
+      "predicted_combined": 0.9333333333333333
+    },
+    {
+      "rank": 11,
+      "time_utc": "03:49",
+      "asset": "USDIDR_otc",
+      "direction": "CALL",
+      "pattern": "small_green + 5reds",
+      "predicted_l1": 0.6666666666666666,
+      "predicted_combined": 0.9333333333333333
+    },
+    {
+      "rank": 12,
+      "time_utc": "05:10",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 4greens",
+      "predicted_l1": 0.6153846153846154,
+      "predicted_combined": 0.9230769230769231
+    },
+    {
+      "rank": 13,
+      "time_utc": "05:21",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 4greens",
+      "predicted_l1": 0.6153846153846154,
+      "predicted_combined": 0.9230769230769231
+    },
+    {
+      "rank": 14,
+      "time_utc": "05:31",
+      "asset": "USDNGN_otc",
+      "direction": "PUT",
+      "pattern": "big_red + 4greens",
+      "predicted_l1": 0.6153846153846154,
+      "predicted_combined": 0.9230769230769231
+    }
+  ]
+}
